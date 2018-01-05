@@ -81,7 +81,7 @@ class Image {
 			$this->image = $image;
 		}
 		$this->height = imagesy($this->image);
-		$this->width = imagesx($image);
+		$this->width = imagesx($this->image);
 	}
 	
 	public function getHeight() {
