@@ -15,7 +15,17 @@ class Captcha extends WaterMark {
 
     protected $configKey = 'captcha';
 
+    protected $realType = 'png';
+
+    /**
+     * @var string 验证码结果
+     */
     protected $code;
+
+    /**
+     * @var array 验证码图片内容字符串
+     */
+    protected $chars = [];
 
     protected $configs = [
         'characters' => 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', //随机因子
@@ -27,11 +37,13 @@ class Captcha extends WaterMark {
         'height' => 30,
         'angle' => 0,         //角度
         'sensitive' => true,   // 大小写敏感
+        'mode' => 0           // 验证码模式： 0 文字 1 公式
     ];
 
     /**
      * 获取验证码
      * @return string
+     * @throws \Exception
      */
     public function getCode() {
         if (empty($this->code)) {
@@ -44,6 +56,7 @@ class Captcha extends WaterMark {
      * 生成
      * @param int $level 干扰等级
      * @return $this
+     * @throws \Exception
      */
     public function generate($level = 0) {
         $this->getCode();
@@ -60,18 +73,53 @@ class Captcha extends WaterMark {
     /**
      * 生成随机码
      * @return $this
+     * @throws \Exception
      */
     public function createCode() {
-        $charset = $this->configs['characters'];
-        $_len   = strlen($charset)-1;
-        for ($i = 0; $i < $this->configs['length']; $i ++) {
-            $this->code .= $charset[mt_rand(0, $_len)];
-        }
+        list($this->code, $this->chars) = $this->configs['mode'] == 1
+            ? $this->generateFormula() : $this->generateRandomChar();
         Factory::session()->set('captcha', [
             'sensitive' => $this->configs['sensitive'],
-            'key'       => Hash::make($this->configs['sensitive'] ? $this->code : strtolower($this->code))
+            'key'       => Hash::make($this->configs['sensitive'] || is_numeric($this->code) ? $this->code : strtolower($this->code))
         ]);
         return $this;
+    }
+
+    protected function generateRandomChar() {
+        $charset = $this->configs['characters'];
+        $_len   = strlen($charset) - 1;
+        $count = intval($this->configs['length']);
+        $chars = [];
+        for ($i = 0; $i < $count; $i ++) {
+            $chars[] = $charset[mt_rand(0, $_len)];
+        }
+        return [implode('', $chars), $chars];
+    }
+
+    protected function generateFormula() {
+        $tags = is_numeric($this->configs['fontFamily']) ?
+            ['+', '-', '*', '/'] : ['加', '减', '乘', '除'];
+        $tag = mt_rand(0, 3);
+        $first = mt_rand(1, 99);
+        $second = mt_rand(1, 99);
+        $result = 0;
+        if ($tag == 0) {
+            $result = $first + $second;
+        } elseif ($tag == 1) {
+            if ($first < $second) {
+                list($first, $second) = [$second, $first];
+            }
+            $result = $first - $second;
+        } elseif ($tag == 2) {
+            $result = $first * $second;
+        } elseif ($tag == 3) {
+            if ($first < $second) {
+                list($first, $second) = [$second, $first];
+            }
+            $result = floor($first / $second);
+            $first = $result * $second;
+        }
+        return [$result, [$first, $tags[$tag], $second, '=?']];
     }
 
     /**
@@ -93,18 +141,23 @@ class Captcha extends WaterMark {
      * 生成文字
      */
     protected function createText() {
-        $x = $this->width / $this->configs['length'];
-
-        for ($i = 0 ; $i < $this->configs['length']; $i ++) {
+        $length = count($this->chars);
+        $width = $this->width / ($length + 1);
+        $left = $width * .5;
+        $maxHeight = $this->height - $left;
+        for ($i = 0; $i < $length; $i ++) {
             $size = $this->fontSize();
+            $angle = $size > $this->height  ? 0 : $this->angle();
+            $height = (abs(cos($angle)) + abs(sin($angle))) * $size;
             $this->addText(
-                $this->code[$i],
-                $x * $i,
-                mt_rand($this->height - $size, $this->height),
+                $this->chars[$i],
+                 $left + $width * $i,
+                $height > $maxHeight
+                    ? $height : mt_rand($height, $maxHeight),
                 $size,
                 $this->getColorWithRGB($this->fontColor($i)),
                 $this->configs['fontFamily'],
-                mt_rand(-30, 30)
+                $angle
             );
         }
     }
@@ -117,7 +170,7 @@ class Captcha extends WaterMark {
         if (empty($this->configs['angle'])) {
             return mt_rand(-30, 30);
         }
-        return rand((-1 * $this->configs['angle']), $this->configs['angle']);
+        return mt_rand(-1 * $this->configs['angle'], $this->configs['angle']);
     }
 
     protected function fontSize() {
@@ -178,13 +231,14 @@ class Captcha extends WaterMark {
      * 验证
      * @param string $value
      * @return bool
+     * @throws \Exception
      */
     public function verify($value) {
         if (!Factory::session()->has('captcha')) {
             return false;
         }
         $data = Factory::session()->get('captcha');
-        if (!$data['sensitive']) {
+        if (!$data['sensitive'] && !is_numeric($value)) {
             $value = strtolower($value);
         }
         Factory::session()->delete('captcha');
