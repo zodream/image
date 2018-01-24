@@ -3,7 +3,7 @@
     "description": "image, captcha",
     "keywords": ["image gd", "zodream"],
     "homepage": "https://github.com/zodream/image",
-    "license": "Apache Licence 2.0",
+    "license": "MIT",
     "authors": [
         {
             "name" : "Jason Zou",
