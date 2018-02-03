@@ -1,8 +1,9 @@
 <?php
-namespace Zodream\Image;
+namespace Zodream\Image\Text;
 
 
 use Zodream\Disk\File;
+use Zodream\Image\Image;
 use Zodream\Service\Factory;
 
 /**
@@ -15,6 +16,9 @@ use Zodream\Service\Factory;
 []>< 文件
  */
 class TextBlock {
+
+    const PATTERN = '/^([^\]]*)\]\>([^<]+)\<|^([^\]]*)\]\<([^<]+)\>/';
+
     protected $fontSize = 14;
 
     protected $background;
@@ -36,9 +40,20 @@ class TextBlock {
     protected $bottom;
 
     /**
-     * @var string|File
+     * @var string|File|Image
      */
     protected $content;
+
+    protected $blocks = [];
+
+    /**
+     * @param array $blocks
+     * @return TextBlock
+     */
+    public function setBlocks($blocks) {
+        $this->blocks = $blocks;
+        return $this;
+    }
 
 
     /**
@@ -61,6 +76,7 @@ class TextBlock {
 
     /**
      * @param string $color
+     * @return TextBlock
      */
     public function setColor($color) {
         $this->color = $color;
@@ -69,6 +85,7 @@ class TextBlock {
 
     /**
      * @param mixed $font
+     * @return TextBlock
      */
     public function setFont($font) {
         $this->font = $font;
@@ -77,6 +94,7 @@ class TextBlock {
 
     /**
      * @param mixed $width
+     * @return TextBlock
      */
     public function setWidth($width) {
         $this->width = $width;
@@ -85,6 +103,7 @@ class TextBlock {
 
     /**
      * @param mixed $height
+     * @return TextBlock
      */
     public function setHeight($height) {
         $this->height = $height;
@@ -93,6 +112,7 @@ class TextBlock {
 
     /**
      * @param mixed $left
+     * @return TextBlock
      */
     public function setLeft($left) {
         $this->left = $left;
@@ -101,6 +121,7 @@ class TextBlock {
 
     /**
      * @param mixed $top
+     * @return TextBlock
      */
     public function setTop($top) {
         $this->top = $top;
@@ -109,6 +130,7 @@ class TextBlock {
 
     /**
      * @param mixed $right
+     * @return TextBlock
      */
     public function setRight($right) {
         $this->right = $right;
@@ -117,6 +139,7 @@ class TextBlock {
 
     /**
      * @param mixed $bottom
+     * @return TextBlock
      */
     public function setBottom($bottom) {
         $this->bottom = $bottom;
@@ -125,9 +148,19 @@ class TextBlock {
 
     /**
      * @param string|File $content
+     * @return TextBlock
      */
     public function setContent($content) {
         $this->content = $content;
+        return $this;
+    }
+
+    public function isEmpty() {
+        return empty($this->content);
+    }
+
+    public function appendContent($content) {
+        $this->content .= $content;
         return $this;
     }
 
@@ -183,60 +216,79 @@ class TextBlock {
     }
 
 
-    public static function parseProperty($property, $content) {
-        $block = new static();
-        $block->setContent($content);
+    public function parseProperty($property) {
         if (empty($property)) {
-            return $block;
+            return $this;
         }
         $args = explode(',', $property);
         $count = count($args);
         if (strpos($property, ':') > 0) {
             foreach ($args as $item) {
-                $block->setProperty(...explode(':', $item, 2));
+                $this->setProperty(...explode(':', $item, 2));
             }
-            return $block;
+            return $this;
         }
         if ($count == 1) {
             return is_numeric($property)
-                ? $block->setFontSize($property)
-                : $block->setColor($property);
+                ? $this->setFontSize($property)
+                : $this->setColor($property);
         }
         if ($count == 2) {
-            return $block->setFontSize($args[0])->setColor($args[1]);
+            return $this->setFontSize($args[0])->setColor($args[1]);
         }
-        return $block->setBoxBound(...$args);
+        return $this->setBoxBound(...$args);
     }
 
-    public static function parseImageProperty($property, $content) {
-        $block = new static();
-        $block->setContent(Factory::root()->file($content));
+    public function parseImageProperty($property) {
         if (empty($property)) {
-            return $block;
+            return $this;
         }
         $args = explode(',', $property);
         $count = count($args);
         if (strpos($property, ':') > 0) {
             foreach ($args as $item) {
-                $block->setProperty(...explode(':', $item, 2));
+                $this->setProperty(...explode(':', $item, 2));
             }
-            return $block;
+            return $this;
         }
         if ($count == 1) {
-            return $block->setWidth($property);
+            return $this->setWidth($property);
         }
         if ($count == 2) {
-            return $block->setBoxSize(...$args);
+            return $this->setBoxSize(...$args);
         }
-        return $block->setBoxBound(...$args);
+        return $this->setBoxBound(...$args);
     }
 
     public static function parse($content) {
-        $block_list = [];
-
-    }
-
-    public static function parseHtml($html) {
-
+        $blocks = [];
+        $block = new static();
+        $i = -1;
+        foreach (explode('[', $content) as $item) {
+            $i ++;
+            if ($i < 1) {
+                $block->setContent($item);
+                continue;
+            }
+            if (!preg_match(self::PATTERN, $item, $match)) {
+                // 还需要判断一次
+                $block->appendContent('['.$item);
+                continue;
+            }
+            if (!$block->isEmpty()) {
+                $blocks[] = $block;
+            }
+            $block = new static();
+            if (empty($match[1])) {
+                $block->parseProperty($match[3])
+                    ->setContent($match[4]);
+            } else {
+                $block->parseImageProperty($match[1])
+                    ->setContent(Factory::root()->file($match[2]));
+            }
+            $blocks[] = $block;
+            $block = new static();
+        }
+        return $blocks;
     }
 }
