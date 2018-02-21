@@ -48,13 +48,15 @@ class Image {
 		$this->setImage($file);
 	}
 	
-	public function open($file) {
+	public function open($file, $type = null) {
 		if ($this->check($file)) {
 			$this->file = $file;
 			$imageInfo = getimagesize($file);
 			$this->width = $imageInfo[0];
 			$this->height = $imageInfo[1];
-			$this->type = image_type_to_extension($imageInfo[2], false);
+			$this->type = empty($type)
+                ? image_type_to_extension($imageInfo[2], false)
+                : $type;
 			$this->setRealType($this->type);
 			if (false !== $this->realType) {
 				$this->image = call_user_func('imagecreatefrom'.$this->realType, $file);
