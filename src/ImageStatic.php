@@ -17,6 +17,7 @@ class ImageStatic {
      * @param $width
      * @param $height
      * @param string $type
+     * @return Image
      */
     public static function canvas($width, $height, $type = 'jpeg') {
         return (new Image())->create($width, $height, $type);

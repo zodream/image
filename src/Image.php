@@ -1,6 +1,8 @@
 <?php
 namespace Zodream\Image;
 
+use Zodream\Disk\File;
+
 class Image {
 	
 	protected $allowTypes = array(
@@ -41,6 +43,10 @@ class Image {
 		if (is_null($file)) {
 			return;
 		}
+		if ($file instanceof File) {
+		    $this->open((string)$file);
+		    return;
+        }
 		if (is_string($file) && is_file($file)) {
 			$this->open($file);
 			return;
@@ -62,6 +68,7 @@ class Image {
 				$this->image = call_user_func('imagecreatefrom'.$this->realType, $file);
 			}
 		}
+        return $this;
 	}
 	
 	public function create($width, $height, $type = 'jpeg') {
@@ -74,6 +81,7 @@ class Image {
 		}
 		$this->height = $height;
 		$this->width = $width;
+		return $this;
 	}
 	
 	public function setImage($image) {
@@ -84,7 +92,13 @@ class Image {
 		}
 		$this->height = imagesy($this->image);
 		$this->width = imagesx($this->image);
+        return $this;
 	}
+
+	public function setEmptyImage() {
+	    $this->image = null;
+	    return $this;
+    }
 	
 	public function getHeight() {
 		return $this->height;
@@ -143,7 +157,7 @@ class Image {
 	 * @param string $color
 	 * @return array
 	 */
-	public function getRGB($color = '#000000') {
+	public static function transformRGB($color = '#000000') {
 		if (count_chars($color) == 4) {
 			$red = substr($color, 1, 1);
 			$green = substr($color, 2, 1);
@@ -173,7 +187,7 @@ class Image {
 			return $color;
 		}
 		if (is_string($color)) {
-			$color = $this->getRGB($color);
+			$color = self::transformRGB($color);
 		} elseif(func_num_args() == 3) {
 			$color = func_get_args();
 		}
@@ -189,6 +203,16 @@ class Image {
 	public function getColor($x = 0, $y = 0) {
 		return imagecolorat($this->image, $x, $y);
 	}
+
+    /**
+     * 从图片上直接获取rgb颜色
+     * @param int $x
+     * @param int $y
+     * @return array
+     */
+	public function getRGB($x = 0, $y = 0) {
+	    return $this->getRgbByColor($this->getColor($x, $y));
+    }
 
 	/**
 	 * 图像上的颜色转换成[R,G,B]
@@ -401,10 +425,14 @@ class Image {
 	 */
 	public function scale($width, $height) {
 		$image = new Image();
-		$image->create($width, $height);
+		$image->create($width, $height, $this->type);
+
 		$result = $image->copyFromWithReSampling($this);
-		imagedestroy($this->image);
+
+        $this->close();
+
 		$this->image = $image->image;
+		$image->setEmptyImage();
 		$this->width = $width;
 		$this->height = $height;
 		return $result;
@@ -416,7 +444,7 @@ class Image {
 	 */
 	public function turn($isX = true) {
 		$image = new Image();
-		$image->create($this->width, $this->height);
+		$image->create($this->width, $this->height, $this->type);
 		if ($isX) {
 			for($y = 0; $y < $this->height; $y ++){
 				//逐条复制图片本身高度，1个像素宽度的图片到薪资源中
@@ -427,8 +455,9 @@ class Image {
 				$image->copyFrom($this, $x, 0, $this->width - $x - 1, 0, 1, $this->height);
 			}
 		}
-		imagedestroy($this->image);
+		$this->close();
 		$this->image = $image->image;
+        $image->setEmptyImage();
 	}
 
 	/**
@@ -463,6 +492,18 @@ class Image {
             $output = (string)$output;
         }
         return call_user_func('image'.$this->realType, $this->image, $output);
+    }
+
+    /**
+     * 转化成base64编码
+     * @return string
+     */
+    public function toBase64() {
+        ob_start ();
+        $this->saveAs();
+        $data = ob_get_contents();
+        ob_end_clean();
+        return 'data:image/'.$this->realType.';base64,'.base64_encode($data);
     }
 	
 	public function close() {
