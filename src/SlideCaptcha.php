@@ -8,7 +8,7 @@ class SlideCaptcha extends Image {
      */
     protected $point;
 
-    protected $alpha = .3;
+    protected $alpha = .5;
 
     /**
      * @var Image
@@ -58,7 +58,7 @@ class SlideCaptcha extends Image {
         $height = $this->shapeImage->getHeight();
         if (empty($this->point)) {
             $this->point = [
-                rand(0, $this->width - $with),
+                rand($with, $this->width - $with),
                 rand(0, $this->height - $height)
             ];
         }

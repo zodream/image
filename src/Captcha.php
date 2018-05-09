@@ -13,6 +13,8 @@ class Captcha extends WaterMark {
 
     use ConfigTrait;
 
+    const SESSION_KEY = 'captcha';
+
     protected $configKey = 'captcha';
 
     protected $realType = 'png';
@@ -72,16 +74,19 @@ class Captcha extends WaterMark {
 
     /**
      * 生成随机码
+     * @param bool $setSession 保存到session里
      * @return $this
      * @throws \Exception
      */
-    public function createCode() {
+    public function createCode($setSession = true) {
         list($this->code, $this->chars) = $this->configs['mode'] == 1
             ? $this->generateFormula() : $this->generateRandomChar();
-        Factory::session()->set('captcha', [
-            'sensitive' => $this->configs['sensitive'],
-            'key'       => Hash::make($this->configs['sensitive'] || is_numeric($this->code) ? $this->code : strtolower($this->code))
-        ]);
+        if ($setSession) {
+            Factory::session()->set(self::SESSION_KEY, [
+                'sensitive' => $this->configs['sensitive'],
+                'key'       => Hash::make($this->configs['sensitive'] || is_numeric($this->code) ? $this->code : strtolower($this->code))
+            ]);
+        }
         return $this;
     }
 
@@ -234,14 +239,14 @@ class Captcha extends WaterMark {
      * @throws \Exception
      */
     public function verify($value) {
-        if (!Factory::session()->has('captcha')) {
+        if (!Factory::session()->has(self::SESSION_KEY)) {
             return false;
         }
-        $data = Factory::session()->get('captcha');
+        $data = Factory::session()->get(self::SESSION_KEY);
         if (!$data['sensitive'] && !is_numeric($value)) {
             $value = strtolower($value);
         }
-        Factory::session()->delete('captcha');
+        Factory::session()->delete(self::SESSION_KEY);
         return Hash::verify($value, $data['key']);
     }
 }
