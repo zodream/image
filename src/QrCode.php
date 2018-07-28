@@ -1,5 +1,10 @@
 <?php
 namespace Zodream\Image;
+use BaconQrCode\Common\ErrorCorrectionLevel;
+use BaconQrCode\Encoder\Encoder;
+use BaconQrCode\Renderer\Image\Png;
+use Zxing\QrReader;
+
 /**
  * 二维码
  * http://phpqrcode.sourceforge.net/
@@ -9,9 +14,17 @@ namespace Zodream\Image;
  */
 class QrCode extends Image {
 
-    protected $level = 0;
+    protected $level = 0x1;
 
-    protected $size = 6;
+    protected $width = 256;
+
+    protected $height = 256;
+
+    protected $encoding = 'ISO-8859-1';
+
+    protected $type = 'png';
+
+    protected $realType = 'png';
 
     /**
      * 容错率
@@ -25,11 +38,22 @@ class QrCode extends Image {
 
     /**
      * 尺寸
-     * @param $size
+     * @param $width
+     * @param $height
      * @return $this
      */
-    public function setSize($size) {
-        $this->size = $size;
+    public function setSize($width, $height) {
+        $this->width = $width;
+        $this->height = $height;
+        return $this;
+    }
+
+    /**
+     * @param string $encoding
+     * @return QrCode
+     */
+    public function setEncoding(string $encoding) {
+        $this->encoding = $encoding;
         return $this;
     }
 
@@ -38,8 +62,13 @@ class QrCode extends Image {
      * @param string $value
      * @return $this
      */
-	public function create($value) {
-		$this->image = \QRcode::png((string)$value, false, $this->level, $this->size, 2);
+	public function encode($value) {
+        $renderer = new Png();
+        $renderer->setHeight($this->height);
+        $renderer->setWidth($this->width);
+        $qrCode = Encoder::encode($value, new ErrorCorrectionLevel($this->level), $this->encoding);
+        $content = $renderer->render($qrCode);
+        $this->image = imagecreatefromstring($content);
 		return $this;
 	}
 
@@ -80,7 +109,7 @@ class QrCode extends Image {
 	    if (!is_null($subject) || !is_null($body)) {
 	        $email .= '?'.http_build_query(compact('subject', 'body'));
         }
-	    return $this->create($email);
+	    return $this->encode($email);
     }
 
     /**
@@ -90,7 +119,7 @@ class QrCode extends Image {
      * @return QrCode
      */
     public function geo($latitude, $longitude) {
-	    return $this->create(sprintf('geo:%s,%s', $latitude, $longitude));
+	    return $this->encode(sprintf('geo:%s,%s', $latitude, $longitude));
     }
 
     /**
@@ -99,7 +128,7 @@ class QrCode extends Image {
      * @return QrCode
      */
     public function tel($phone) {
-        return $this->create('tel:'.$phone);
+        return $this->encode('tel:'.$phone);
     }
 
     /**
@@ -113,7 +142,7 @@ class QrCode extends Image {
         if (!is_null($message)) {
             $phone .= ':'. $message;
         }
-        return $this->create($phone);
+        return $this->encode($phone);
     }
 
     /**
@@ -138,7 +167,7 @@ class QrCode extends Image {
         if (!is_null($hidden)) {
             $wifi .= 'H:'.($hidden === true ? 'true' : 'false').';';
         }
-        return $this->create($wifi);
+        return $this->encode($wifi);
     }
 
     /**
@@ -151,11 +180,19 @@ class QrCode extends Image {
      * @return QrCode
      */
     public function btc($address, $amount, $label, $message, $returnAddress) {
-        return $this->create(sprintf('bitcoin:%s?%s', $address, http_build_query([
+        return $this->encode(sprintf('bitcoin:%s?%s', $address, http_build_query([
             'amount'    => $amount,
             'label'     => $label,
             '$message'  => $message,
             'r'         => $returnAddress,
         ])));
+    }
+
+    /**
+     * 解码
+     * @return string
+     */
+    public function decode() {
+        return (new QrReader($this->image, QrReader::SOURCE_TYPE_RESOURCE))->text();
     }
 }
