@@ -9,7 +9,7 @@ class ImageStatic {
      * @return Image
      */
     public static function make($data) {
-        return (new Image($data));
+        return new Image($data);
     }
 
     /**

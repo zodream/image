@@ -158,7 +158,7 @@ class Image {
 	 * @return array
 	 */
 	public static function transformRGB($color = '#000000') {
-		if (count_chars($color) == 4) {
+		if (strlen($color) == 4) {
 			$red = substr($color, 1, 1);
 			$green = substr($color, 2, 1);
 			$blue = substr($color, 3, 1);
