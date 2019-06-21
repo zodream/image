@@ -54,18 +54,19 @@ class SlideCaptcha extends Image {
     }
 
     public function drawBox() {
-        $with = $this->shapeImage->getWidth();
+        $width = $this->shapeImage->getWidth();
         $height = $this->shapeImage->getHeight();
         if (empty($this->point)) {
             $this->point = [
-                rand($with, $this->width - $with),
+                rand($width, $this->width - $width),
                 rand(0, $this->height - $height)
             ];
         }
-        $this->slideImage = ImageStatic::canvas($with, $height, 'png');
-        for ($i = 0; $i < $with; $i ++) {
+        $this->slideImage = ImageStatic::canvas($width, $height, 'png');
+        for ($i = 0; $i < $width; $i ++) {
             for ($j = 0; $j < $height; $j ++) {
-                if (!$this->isValidBound($i, $j)) {
+                $current = $this->isValidBound($i, $j);
+                if (!$current) {
                     continue;
                 }
                 $real_x = $i + $this->point[0];
