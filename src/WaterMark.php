@@ -116,27 +116,23 @@ class WaterMark extends Image {
      */
 	public function addTextByDirection($text, $direction = self::Top, $fontSize = 16, $color = '#000', $fontFamily = 5) {
 		list($x, $y) = $this->getPointByDirection($direction);
-		return $this->addText($text, $x, $y, $fontSize, $color, $fontFamily);
+		return $this->text($text, $x, $y, $fontSize, $color, $fontFamily);
 	}
 
-	/**
-	 * 加文字
-	 * @param string $text
-	 * @param int $x
-	 * @param int $y
-	 * @param int $fontSize
-	 * @param string $color
-	 * @param int|string $fontFamily
-	 * @param int $angle 如果 $fontFamily 为 int，则不起作用
-	 * @return array|bool
-	 */
+    /**
+     * 加文字
+     * @param string $text
+     * @param int $x
+     * @param int $y
+     * @param int $fontSize
+     * @param string $color
+     * @param int|string $fontFamily
+     * @param int $angle 如果 $fontFamily 为 int，则不起作用
+     * @return array|bool
+     * @throws \Zodream\Infrastructure\Error\Exception
+     */
 	public function addText($text, $x = 0, $y = 0, $fontSize = 16, $color = '#000', $fontFamily = 5, $angle = 0) {
-		$color = $this->getColorWithRGB($color);
-		if (is_string($fontFamily) && is_file($fontFamily)) {
-			return imagettftext($this->image, $fontSize, $angle, $x, $y, $color, $fontFamily, $text);
-		}
-		$fontFamily = intval($fontFamily);
-		return imagestring($this->image, $fontFamily, $x, $y, $text, $color);
+		return $this->text(...func_get_args());
 	}
 
     /**

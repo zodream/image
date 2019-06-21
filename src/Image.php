@@ -152,45 +152,17 @@ class Image {
 		);
 	}
 
-	/**
-	 * 转化成[R,G,B]
-	 * @param string $color
-	 * @return array
-	 */
-	public static function transformRGB($color = '#000000') {
-		if (strlen($color) == 4) {
-			$red = substr($color, 1, 1);
-			$green = substr($color, 2, 1);
-			$blue = substr($color, 3, 1);
-			$red .= $red;
-			$green .= $green;
-			$blue .= $blue;
-		} else {
-			$red = substr($color, 1, 2);
-			$green = substr($color, 3, 2);
-			$blue = substr($color, 5, 2);
-		}
-		return array(
-				hexdec($red),
-				hexdec($green),
-				hexdec($blue)
-		);
-	}
-
-	/**
-	 * 转化成颜色
-	 * @param int|string|array $color
-	 * @return int|false
-	 */
+    /**
+     * 转化成颜色
+     * @param int|string|array $color
+     * @return int|false
+     * @throws \Zodream\Infrastructure\Error\Exception
+     */
 	public function getColorWithRGB($color) {
-		if (func_num_args() == 1 && is_int($color)) {
-			return $color;
-		}
-		if (is_string($color)) {
-			$color = self::transformRGB($color);
-		} elseif(func_num_args() == 3) {
-			$color = func_get_args();
-		}
+		$color = Colors::converter(...func_get_args());
+		if (is_integer($color)) {
+		    return $color;
+        }
 		return imagecolorallocate($this->image, $color[0], $color[1], $color[2]);
 	}
 
@@ -369,6 +341,74 @@ class Image {
 		}
 		return imagecopyresampled($this->image, $srcImage->image, $x, $y, $srcX, $srcY, $width, $height, $srcWidth, $srcHeight);
 	}
+
+    /**
+     * 加文字
+     * @param string $text
+     * @param int $x
+     * @param int $y
+     * @param int $fontSize
+     * @param string $color
+     * @param int|string $fontFamily
+     * @param int $angle 如果 $fontFamily 为 int，则不起作用
+     * @return array|bool
+     * @throws \Zodream\Infrastructure\Error\Exception
+     */
+    public function text($text, $x = 0, $y = 0, $fontSize = 16, $color = '#000', $fontFamily = 5, $angle = 0) {
+        $color = $this->getColorWithRGB($color);
+        if (is_string($fontFamily) && is_file($fontFamily)) {
+            return imagettftext($this->image, $fontSize, $angle, $x, $y, $color, $fontFamily, $text);
+        }
+        $fontFamily = intval($fontFamily);
+        return imagestring($this->image, $fontFamily, $x, $y, $text, $color);
+    }
+
+    /**
+     * 画线条
+     * @param $x
+     * @param $y
+     * @param $x2
+     * @param $y2
+     * @param $color
+     * @return $this
+     * @throws \Zodream\Infrastructure\Error\Exception
+     */
+	public function line($x, $y, $x2, $y2, $color) {
+	    imageline($this->image, $x, $y, $x2, $y2, $this->getColorWithRGB($color));
+	    return $this;
+    }
+
+    /**
+     * 填充颜色
+     * @param int $x
+     * @param int $y
+     * @param int $x2
+     * @param int $y2
+     * @param string $color
+     * @throws \Zodream\Infrastructure\Error\Exception
+     */
+    public function fill($x = 0, $y = 0, $x2 = 0, $y2 = 0, $color = '#fff') {
+	    if (func_num_args() === 0) {
+	        $x = 0;
+            $y = $this->height;
+            $x2 = $this->width;
+            $y2 = 0;
+        } elseif (!is_numeric($x)) {
+	        $color = $x;
+            $x = 0;
+            $y = $this->height;
+            $x2 = $this->width;
+            $y2 = 0;
+        }
+        imagefilledrectangle(
+            $this->image,
+            $x,
+            $y,
+            $x2,
+            $y2,
+            $this->getColorWithRGB($color)
+        );
+    }
 
 	/**
 	 * 复制并调整图片的一部分

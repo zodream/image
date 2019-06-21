@@ -22,7 +22,7 @@
 
 [图片比较（简单版）](#compare)
 
-[内容生成图片（未完成）](#draw)
+[内容生成图片](#draw)
 
 
 
@@ -150,4 +150,88 @@ $img->setBackground('#fff')
     ->addText(new Text('￥', 278, 640, '#f00', $font, 12))
     ->addText(new Text('123.00', 290, 640, '#f00', $font, 25))
     ->addText(new Text('测试商品', 300, 670, '#000', $font, 12))
+```
+
+<a name="draw"></a>
+## 内容生成图片
+
+```php
+$str = <<<TEXT
+
+
+
+[padding=10 background=#fff width=470]
+[img width=450 height=450]aaa
+[size=20 padding=10,0 bold]sbfajahaa
+[color=#ccc size=12]sdfsssdfdafsdaasfs
+[img width=100 height=100 center]iadfasdsad
+[size=10 color=#ccc center]123131231
+TEXT;
+$box = BoxNode::parse($str);
+dd($box);
+
+
+$img = __DIR__.'/assets/images/banner.jpg';
+$font = __DIR__.'/../data/fonts/msyh.ttc';
+$box = BoxNode::create([
+    'padding' => 10,
+    'background' => 'white',
+    'width' => 470
+])->append(
+    ImgNode::create($img, [
+        'width' => '100%',
+        'height' => '100%'
+    ]),
+    TextNode::create('sbfajahaa', [
+        'size' => 20,
+        'letterSpace' => 20,
+        'padding' => [
+            10,
+            0,
+        ],
+        'bold' => true,
+        'font' => $font
+    ]),
+    TextNode::create('1234avccg', [
+        'size' => 12,
+        'font' => $font,
+        'letterSpace' => 4,
+        'lineSpace' => 4,
+        'color' => '#ccc'
+    ]),
+    ImgNode::create($img, [
+        'width' => '100',
+        'height' => '100',
+        'center' => true
+    ]),
+    TextNode::create('sbfajahaa', [
+        'size' => 12,
+        'color' => '#ccc',
+        'letterSpace' => 4,
+        'lineSpace' => 4,
+        'wrap' => false,
+        'font' => $font,
+        'center' => true
+    ]),
+    BorderNode::create([
+        'size' => 1,
+        'fixed' => true,
+        'margin' => 10
+    ]),
+    LineNode::create(10, 10, 10, 100, [
+        'size' => 1,
+        'fixed' => true,
+        'color' => 'black'
+    ]),
+    RectNode::create([
+        'points' => [
+            [0, 0],
+            [200, 0],
+            [0, 200],
+        ],
+        'color' => 'black'
+    ])
+);
+$box->draw()->show();
+
 ```

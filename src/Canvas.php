@@ -8,10 +8,7 @@ use Zodream\Image\Node\Text;
 class Canvas extends Image {
 
     public function setBackground($color) {
-        $color = $this->getColorWithRGB(...func_get_args());
-        imagefilledrectangle($this->image, 0, $this->height,
-            $this->width, 0, $color);
-        return $this;
+        return $this->fill($color);
     }
 
     public function addImage(Image $image, Box $box) {
@@ -36,5 +33,9 @@ class Canvas extends Image {
         imagestring($this->image, intval($text->font), $text->x, $text->y,
             $text->content, $color);
         return $this;
+    }
+
+    public function show() {
+        return app('response')->image($this)->send();
     }
 }

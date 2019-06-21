@@ -132,13 +132,8 @@ class Captcha extends WaterMark {
      */
     protected function createBg() {
         $this->create($this->width, $this->height);
-        imagefilledrectangle(
-            $this->image,
-            0,
-            $this->height,
-            $this->width,
-            0,
-            $this->getColorWithRGB(mt_rand(157, 255), mt_rand(157, 255), mt_rand(157, 255))
+        $this->fill(
+            [mt_rand(157, 255), mt_rand(157, 255), mt_rand(157, 255)]
         );
     }
 
@@ -160,7 +155,7 @@ class Captcha extends WaterMark {
                 $height > $maxHeight
                     ? $height : mt_rand($height, $maxHeight),
                 $size,
-                $this->getColorWithRGB($this->fontColor($i)),
+                $this->fontColor($i),
                 $this->configs['fontFamily'],
                 $angle
             );
@@ -210,24 +205,22 @@ class Captcha extends WaterMark {
     protected function createLine($level = 1) {
         //线条
         for ($i = 0; $i < 6; $i ++) {
-            imageline(
-                $this->image,
+            $this->line(
                 mt_rand(0, $this->width),
                 mt_rand(0, $this->height),
                 mt_rand(0, $this->width),
                 mt_rand(0, $this->height),
-                $this->getColorWithRGB(mt_rand(0, 156), mt_rand(0, 156), mt_rand(0, 156))
-            );
+                [mt_rand(0, 156), mt_rand(0, 156), mt_rand(0, 156)]);
         }
         //雪花
         for ($i = 0, $length = $level * 20; $i < $length; $i ++) {
-            imagestring(
-                $this->image,
-                mt_rand(1, 5),
+            $this->addText(
+                '*',
                 mt_rand(0, $this->width),
                 mt_rand(0, $this->height),
-                '*',
-                $this->getColorWithRGB(mt_rand(200, 255), mt_rand(200, 255), mt_rand(200, 255))
+                16,
+                [mt_rand(200, 255), mt_rand(200, 255), mt_rand(200, 255)],
+                mt_rand(1, 5)
             );
         }
     }

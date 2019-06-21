@@ -10,4 +10,8 @@ class Point {
         $this->x = $x;
         $this->y = $y;
     }
+
+    public static function create($x, $y) {
+        return new static($x, $y);
+    }
 }
