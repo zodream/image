@@ -123,9 +123,27 @@ class BoxNode {
             $args = explode('=', $line, 2);
             if (count($args) === 1) {
                 $args[1] = true;
+                if (strpos($args[0], '!') === 0) {
+                    $args[1] = false;
+                    $args[0] = substr($args[0], 1);
+                }
+
             }
-            $properties[$args[0]] = $args[1];
+            $properties[$args[0]] = static::parseVal($args[1]);
         }
         return $properties;
+    }
+
+    protected static function parseVal($val) {
+        if (is_numeric($val)) {
+            return $val;
+        }
+        if ($val === 'true') {
+            return true;
+        }
+        if ($val === 'false') {
+            return $val;
+        }
+        return $val;
     }
 }

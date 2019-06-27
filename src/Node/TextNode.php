@@ -43,6 +43,11 @@ class TextNode {
         return $this;
     }
 
+    protected function isWrap() {
+        return !array_key_exists('wrap', $this->properties)
+            || $this->properties['wrap'] !== false;
+    }
+
     /**
      * @param $content
      * @return $this
@@ -70,6 +75,9 @@ class TextNode {
         $this->styles['letterSpace'] = NodeHelper::orDefault('letterSpace', $this->properties, $properties, 0);
         $this->styles['color'] = NodeHelper::orDefault('color', $this->properties, $properties, '#333');
         $this->styles['font'] = NodeHelper::orDefault('font', $this->properties, $properties, 1);
+        if (strpos($this->styles['font'], '@') === 0) {
+            $this->styles['font'] = $properties[substr($this->styles['font'], 1)];
+        }
         $this->styles['lines'] = $this->getLines(floor($innerWidth / ($this->styles['size'] + $this->styles['letterSpace'])));
         $height = count($this->styles['lines']) * ($this->styles['size'] + $this->styles['lineSpace']);
         return $height + $this->styles['padding'][0] + $this->styles['padding'][2]
@@ -86,6 +94,9 @@ class TextNode {
             $startX = $x;
             if ($center) {
                 $startX = $this->styles['lineCenter'] - count($line) * $space / 2;
+                if (!$this->isWrap()) {
+                    $startX = $this->styles['lineCenter'] - mb_strlen($line[0]) * $space;
+                }
             }
             foreach ($line as $font) {
                 if (!is_null($font)) {
@@ -99,8 +110,7 @@ class TextNode {
     }
 
     protected function getLines($maxCount) {
-        if (array_key_exists('wrap', $this->properties)
-            && $this->properties['wrap'] === false) {
+        if (!$this->isWrap()) {
             $line = [$this->content];
             for ($i = mb_strlen($this->content) - 1; $i > 0; $i --) {
                 $line[] = null;

@@ -408,6 +408,7 @@ class Image {
             $y2,
             $this->getColorWithRGB($color)
         );
+        return $this;
     }
 
 	/**

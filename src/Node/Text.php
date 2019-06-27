@@ -11,7 +11,7 @@ class Text extends Box {
 
     public $font;
 
-    public function __construct($content, $x, $y, $color, $font, $size, int $direction = self::LeftTop) {
+    public function __construct($content, $x, $y, $color, $font, $size, $direction = self::LeftTop) {
         parent::__construct($x, $y, mb_strlen($content) * $size, $size, $direction);
         $this->content = $content;
         $this->color = $color;
