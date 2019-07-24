@@ -94,7 +94,8 @@ class BoxNode {
 
     public static function parse($content) {
         $lines = explode(PHP_EOL, ltrim($content));
-        if (preg_match('/^\[(.+)\]$/', $lines[0], $match)) {
+        // 修复linux换行符
+        if (preg_match('/^\[(.+)\]$/', trim($lines[0]), $match)) {
             $box = static::create(static::parseProperties($match[1]));
             array_shift($lines);
         } else {
