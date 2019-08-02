@@ -53,7 +53,7 @@ class ImgNode {
      * @return ImgNode
      */
     public function setSrc($src) {
-        $this->src = $src;
+        $this->src = trim($src);
         $this->image = null;
         return $this;
     }
