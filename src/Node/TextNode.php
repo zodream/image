@@ -71,14 +71,14 @@ class TextNode {
             - $this->styles['padding'][3];
         $this->styles['lineCenter'] = $properties['innerWidth'] / 2 + $properties['x'];
         $this->styles['size'] = NodeHelper::orDefault('size', $this->properties, $properties, 16);
-        $this->styles['lineSpace'] = NodeHelper::orDefault('lineSpace', $this->properties, $properties, 0);
+        $this->styles['lineSpace'] = NodeHelper::orDefault('lineSpace', $this->properties, $properties, 6);
         $this->styles['letterSpace'] = NodeHelper::orDefault('letterSpace', $this->properties, $properties, 0);
         $this->styles['color'] = NodeHelper::orDefault('color', $this->properties, $properties, '#333');
         $this->styles['font'] = NodeHelper::orDefault('font', $this->properties, $properties, 1);
         if (strpos($this->styles['font'], '@') === 0) {
             $this->styles['font'] = $properties[substr($this->styles['font'], 1)];
         }
-        $this->styles['lines'] = $this->getLines(floor($innerWidth / ($this->styles['size'] + $this->styles['letterSpace'])));
+        $this->styles['lines'] = $this->getLines($innerWidth);
         $height = count($this->styles['lines']) * ($this->styles['size'] + $this->styles['lineSpace']);
         return $height + $this->styles['padding'][0] + $this->styles['padding'][2]
             + $this->styles['margin'][0] + $this->styles['margin'][2];
@@ -98,18 +98,20 @@ class TextNode {
                     $startX = $this->styles['lineCenter'] - mb_strlen($line[0]) * $space;
                 }
             }
-            foreach ($line as $font) {
-                if (!is_null($font)) {
-                    $box->text($font, $startX, $y, $this->styles['size'],
+            $box->text($line, $startX, $y, $this->styles['size'],
                         $this->styles['color'], $this->styles['font']);
-                }
-                $startX += $space;
-            }
+//            foreach ($line as $font) {
+//                if (!is_null($font)) {
+//                    $box->text($font, $startX, $y, $this->styles['size'],
+//                        $this->styles['color'], $this->styles['font']);
+//                }
+//                $startX += $space;
+//            }
             $y += $lineSpace;
         }
     }
 
-    protected function getLines($maxCount) {
+    protected function getLines($maxWidth) {
         if (!$this->isWrap()) {
             $line = [$this->content];
             for ($i = mb_strlen($this->content) - 1; $i > 0; $i --) {
@@ -119,41 +121,22 @@ class TextNode {
                 $line
             ];
         }
-        $maxCount *= 2;
         $lines = [];
-        $line = [];
         $length = mb_strlen($this->content);
-        for ($i = 0; $i < $length; $i ++) {
-            if (count($line) >= $maxCount) {
+        $start = 0;
+        for ($i = 1; $i <= $length; $i ++) {
+            $line = mb_substr($this->content, $start, $i - $start);
+            $box = imagettfbbox($this->styles['size'], 0, $this->styles['font'], $line);
+            if (
+                $box[2]> $maxWidth
+            ) {
+                $lines[] = mb_substr($this->content, $start, $i - $start - 1);
+                $start = $i -1;
+            } elseif ($i === $length) {
                 $lines[] = $line;
-                $line = [];
+                break;
             }
-            $font = mb_substr($this->content, $i, 1);
-            $code = ord($font);
-            if ($code === 9) {
-                $line[] = null;
-                $line[] = null;
-                $line[] = null;
-                $line[] = null;
-                continue;
-            }
-            if ($code === 10) {
-                $lines[] = $line;
-                $line = [];
-                continue;
-            }
-            if ($code <= 127) {
-                $line[] = $font;
-                continue;
-            }
-            if (count($line) + 2 > $maxCount) {
-                $lines[] = $line;
-                $line = [];
-            }
-            $line[] = $font;
-            $line[] = null;
         }
-        $lines[] = $line;
         return $lines;
     }
 
