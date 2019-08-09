@@ -93,10 +93,7 @@ class TextNode {
         foreach ($this->styles['lines'] as $line) {
             $startX = $x;
             if ($center) {
-                $startX = $this->styles['lineCenter'] - count($line) * $space / 2;
-                if (!$this->isWrap()) {
-                    $startX = $this->styles['lineCenter'] - mb_strlen($line[0]) * $space;
-                }
+                $startX = $this->styles['lineCenter'] - $this->getFontWidth($line) / 2;
             }
             $box->text($line, $startX, $y, $this->styles['size'],
                         $this->styles['color'], $this->styles['font']);
@@ -113,12 +110,8 @@ class TextNode {
 
     protected function getLines($maxWidth) {
         if (!$this->isWrap()) {
-            $line = [$this->content];
-            for ($i = mb_strlen($this->content) - 1; $i > 0; $i --) {
-                $line[] = null;
-            }
             return [
-                $line
+                $this->content
             ];
         }
         $lines = [];
@@ -126,9 +119,9 @@ class TextNode {
         $start = 0;
         for ($i = 1; $i <= $length; $i ++) {
             $line = mb_substr($this->content, $start, $i - $start);
-            $box = imagettfbbox($this->styles['size'], 0, $this->styles['font'], $line);
+            $w = $this->getFontWidth($line);
             if (
-                $box[2]> $maxWidth
+                $w > $maxWidth
             ) {
                 $lines[] = mb_substr($this->content, $start, $i - $start - 1);
                 $start = $i -1;
@@ -138,6 +131,11 @@ class TextNode {
             }
         }
         return $lines;
+    }
+
+    protected function getFontWidth($font) {
+        $box = imagettfbbox($this->styles['size'], 0, $this->styles['font'], $font);
+        return $box[2];
     }
 
     public static function create($content, array $properties = []) {
