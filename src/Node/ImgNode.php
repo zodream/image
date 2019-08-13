@@ -88,6 +88,12 @@ class ImgNode {
     }
 
     protected function getWidth(array $properties) {
+        if (!isset($this->properties['width'])
+            && isset($this->properties['height'])
+            && is_numeric($this->properties['height'])) {
+            return $this->properties['height'] * $this->image->getWidth()
+                / $this->image->getHeight();
+        }
         $width = NodeHelper::width(isset($this->properties['width']) ? $this->properties['width'] : null, $properties);
         if (!empty($width)) {
             return $width;
@@ -96,6 +102,11 @@ class ImgNode {
     }
 
     protected function getHeight(array $properties) {
+        if (!isset($this->properties['height'])
+            && isset($this->properties['width'])
+            && is_numeric($this->properties['width'])) {
+            return $this->properties['width'] * $this->image->getHeight() / $this->image->getWidth();
+        }
         $width = NodeHelper::width(isset($this->properties['height']) ? $this->properties['height'] : null, $properties);
         if (!empty($width)) {
             return $width;
