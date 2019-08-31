@@ -1,5 +1,6 @@
 <?php
 namespace Zodream\Image;
+
 use BaconQrCode\Common\ErrorCorrectionLevel;
 use BaconQrCode\Encoder\Encoder;
 use BaconQrCode\Renderer\Image\Png;

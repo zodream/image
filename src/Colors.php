@@ -3,7 +3,7 @@ namespace Zodream\Image;
 
 
 use Zodream\Helpers\Str;
-use Zodream\Infrastructure\Error\Exception;
+use Exception;
 
 class Colors {
 

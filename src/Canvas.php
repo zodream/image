@@ -2,7 +2,6 @@
 namespace Zodream\Image;
 
 use Zodream\Image\Node\Box;
-use Zodream\Image\Node\Point;
 use Zodream\Image\Node\Text;
 
 class Canvas extends Image {
