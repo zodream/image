@@ -25,7 +25,14 @@
 [内容生成图片](#draw)
 
 
+### ico 生成
 
+```php
+use Zodream\Image\Ico;
+
+$image = new Ico('1.png');
+$image->saveAsSize('1.ico', $image->getSizes());
+```
 
 <a name="captcha"></a>
 ### 验证码
