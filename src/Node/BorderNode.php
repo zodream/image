@@ -3,45 +3,28 @@ namespace Zodream\Image\Node;
 
 use Zodream\Image\Image;
 
-class BorderNode {
-    /**
-     * 设置的属性
-     * @var array
-     */
-    protected $properties = [];
+class BorderNode extends BaseNode {
 
-    /**
-     * 生成的属性
-     * @var array
-     */
-    protected $styles = [];
+    protected $content;
 
-
-    /**
-     * @param array $properties
-     * @return BorderNode
-     */
-    public function setProperties(array $properties) {
-        $this->properties = $properties;
-        $this->styles = [];
-        return $this;
+    public function __construct($content = null) {
+        $this->content = $content;
     }
 
-    public function property($name, $value) {
-        $this->properties[$name] = $value;
-        $this->styles = [];
-        return $this;
-    }
+
 
     public function refresh(array $properties = []) {
-        return 0;
-    }
-
-    public function draw(Image $box) {
 
     }
 
-    public static function create(array $properties) {
-        return (new static())->setProperties($properties);
+    public function draw(Image $box = null) {
+
+    }
+
+    public static function create($content, array $properties = []) {
+        if (is_array($content)) {
+            list($content, $properties) = [null, $content];
+        }
+        return (new static($content))->setStyles($properties);
     }
 }

@@ -3,44 +3,17 @@ namespace Zodream\Image\Node;
 
 use Zodream\Image\Image;
 
-class LineNode {
-    /**
-     * 设置的属性
-     * @var array
-     */
-    protected $properties = [];
-
-    /**
-     * 生成的属性
-     * @var array
-     */
-    protected $styles = [];
-
-
-    /**
-     * @param array $properties
-     * @return LineNode
-     */
-    public function setProperties(array $properties) {
-        $this->properties = $properties;
-        $this->styles = [];
-        return $this;
-    }
-
-    public function property($name, $value) {
-        $this->properties[$name] = $value;
-        $this->styles = [];
-        return $this;
-    }
+class LineNode extends BaseNode {
+   
 
     public function refresh(array $properties = []) {
-        $this->styles['color'] = $this->properties['color'];
-        $this->styles['points'] = isset($this->properties['points']) ? $this->properties['points'] : [];
-        if ($this->properties['fixed']) {
+        $this->styles['color'] = $this->styles['color'];
+        $this->styles['points'] = isset($this->styles['points']) ? $this->styles['points'] : [];
+        if ($this->styles['fixed']) {
             return 0;
         }
-        $this->styles['padding'] = NodeHelper::padding($this->properties);
-        $this->styles['margin'] = NodeHelper::padding($this->properties, 'margin');
+        $this->styles['padding'] = NodeHelper::padding($this->styles);
+        $this->styles['margin'] = NodeHelper::padding($this->styles, 'margin');
         if (!isset($this->styles['points'][0]) || empty($this->styles['points'][0])) {
             $this->styles['points'][0] = [
                 $properties['x'] + $this->styles['margin'][3] + $this->styles['padding'][3],
@@ -53,16 +26,16 @@ class LineNode {
             return abs($this->styles['points'][0][1] - $this->styles['points'][1][1])
                 + $outerHeight;
         }
-        if (isset($this->properties['width'])) {
-            $width = NodeHelper::width($this->properties['width'], $properties);
+        if (isset($this->styles['width'])) {
+            $width = NodeHelper::width($this->styles['width'], $properties);
             $this->styles['points'][1] = [
                 $this->styles['points'][0][0] + $width,
                 $this->styles['points'][0][1]
             ];
             return $outerHeight;
         }
-        if (isset($this->properties['height'])) {
-            $height = NodeHelper::width($this->properties['height'], $properties);
+        if (isset($this->styles['height'])) {
+            $height = NodeHelper::width($this->styles['height'], $properties);
             $this->styles['points'][1] = [
                 $this->styles['points'][0][0],
                 $this->styles['points'][0][1] + $height
@@ -72,7 +45,7 @@ class LineNode {
         return 0;
     }
 
-    public function draw(Image $box) {
+    public function draw(Image $box = null) {
         $points = $this->styles['points'];
         for ($i = count($points) - 1; $i > 0; $i --) {
             $box->line($points[$i][0], $points[$i][1], $points[$i - 1][0], $points[$i - 1][1], $this->styles['color']);
@@ -89,7 +62,7 @@ class LineNode {
             ];
         }
         return (new static())
-            ->setProperties($properties);
+            ->setStyles($properties);
     }
 
 }

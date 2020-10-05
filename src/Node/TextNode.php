@@ -4,48 +4,22 @@ namespace Zodream\Image\Node;
 
 use Zodream\Image\Image;
 
-class TextNode {
-    /**
-     * 设置的属性
-     * @var array
-     */
-    protected $properties = [];
+class TextNode extends BaseNode {
 
     /**
      * @var string
      */
     protected $content;
 
-    /**
-     * 生成的属性
-     * @var array
-     */
-    protected $styles = [];
-
     public function __construct($content) {
         $this->text($content);
     }
 
 
-    /**
-     * @param array $properties
-     * @return $this
-     */
-    public function setProperties(array $properties) {
-        $this->properties = $properties;
-        $this->styles = [];
-        return $this;
-    }
-
-    public function property($name, $value) {
-        $this->properties[$name] = $value;
-        $this->styles = [];
-        return $this;
-    }
 
     protected function isWrap() {
-        return !array_key_exists('wrap', $this->properties)
-            || $this->properties['wrap'] !== false;
+        return !array_key_exists('wrap', $this->styles)
+            || $this->styles['wrap'] !== false;
     }
 
     /**
@@ -58,10 +32,10 @@ class TextNode {
     }
 
     public function refresh(array $properties = []) {
-        $this->styles = array_merge($this->properties, [
+        $this->styles = array_merge($this->styles, [
             'y' => $properties['y'],
-            'padding' => NodeHelper::padding($this->properties),
-            'margin' => NodeHelper::padding($this->properties, 'margin'),
+            'padding' => NodeHelper::padding($this->styles),
+            'margin' => NodeHelper::padding($this->styles, 'margin'),
         ]);
         $this->styles['x'] = $properties['x'] + $this->styles['margin'][3] + $this->styles['padding'][3];
         $this->styles['y'] = $properties['y'] + $this->styles['padding'][0] + $this->styles['margin'][0];
@@ -70,11 +44,11 @@ class TextNode {
             - $this->styles['margin'][3]
             - $this->styles['padding'][3];
         $this->styles['lineCenter'] = $properties['innerWidth'] / 2 + $properties['x'];
-        $this->styles['size'] = NodeHelper::orDefault('size', $this->properties, $properties, 16);
-        $this->styles['lineSpace'] = NodeHelper::orDefault('lineSpace', $this->properties, $properties, 6);
-        $this->styles['letterSpace'] = NodeHelper::orDefault('letterSpace', $this->properties, $properties, 0);
-        $this->styles['color'] = NodeHelper::orDefault('color', $this->properties, $properties, '#333');
-        $this->styles['font'] = NodeHelper::orDefault('font', $this->properties, $properties, 1);
+        $this->styles['size'] = NodeHelper::orDefault('size', $this->styles, $properties, 16);
+        $this->styles['lineSpace'] = NodeHelper::orDefault('lineSpace', $this->styles, $properties, 6);
+        $this->styles['letterSpace'] = NodeHelper::orDefault('letterSpace', $this->styles, $properties, 0);
+        $this->styles['color'] = NodeHelper::orDefault('color', $this->styles, $properties, '#333');
+        $this->styles['font'] = NodeHelper::orDefault('font', $this->styles, $properties, 1);
         if (strpos($this->styles['font'], '@') === 0) {
             $this->styles['font'] = $properties[substr($this->styles['font'], 1)];
         }
@@ -84,7 +58,7 @@ class TextNode {
             + $this->styles['margin'][0] + $this->styles['margin'][2];
     }
 
-    public function draw(Image $box) {
+    public function draw(Image $box = null) {
         $space = ($this->styles['size'] + $this->styles['letterSpace']) / 2;
         $lineSpace = $this->styles['size'] + $this->styles['lineSpace'];
         $x = $this->styles['x'];
@@ -139,6 +113,6 @@ class TextNode {
     }
 
     public static function create($content, array $properties = []) {
-        return (new static($content))->setProperties($properties);
+        return (new static($content))->setStyles($properties);
     }
 }

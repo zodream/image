@@ -3,81 +3,65 @@ namespace Zodream\Image\Node;
 
 use Zodream\Helpers\Str;
 use Zodream\Image\Canvas;
+use Zodream\Image\Image;
 
-class BoxNode {
-    /**
-     * 设置的属性
-     * @var array
-     */
-    protected $properties = [];
+class BoxNode extends BaseNode {
 
     /**
-     * @var ImgNode[]
+     * @var BaseNode[]
      */
     protected $children = [];
 
-    /**
-     * 生成的属性
-     * @var array
-     */
-    protected $styles = [];
-
-
-    /**
-     * @param array $properties
-     * @return BoxNode
-     */
-    public function setProperties(array $properties) {
-        $this->properties = $properties;
-        $this->styles = [];
-        return $this;
-    }
-
-    public function property($name, $value) {
-        $this->properties[$name] = $value;
-        $this->styles = [];
-        return $this;
-    }
-
     public function append(...$nodes) {
         $this->children = array_merge($this->children, $nodes);
-        $this->styles = [];
+        $this->computed = [];
         return $this;
     }
 
     public function refresh(array $properties = []) {
-        if (!empty($this->styles) && empty($properties)) {
-            return;
-        }
-        $properties = array_merge($this->properties, $properties);
-        $properties['padding'] = NodeHelper::padding($properties);
-        $properties['margin'] = NodeHelper::padding($properties, 'margin');
-        $properties['innerWidth'] = $properties['width'] - $properties['padding'][1] - $properties['padding'][3];
-        $properties['outerWidth'] = $properties['width'] + $properties['margin'][1] - $properties['margin'][3];
-        $properties['x'] = $properties['margin'][1] + $properties['padding'][1];
-        $properties['y'] = $properties['margin'][0] + $properties['padding'][0];
-        foreach ($this->children as $node) {
-            $properties['y'] += $node->refresh($properties);
-        }
-        if (!isset($properties['height'])) {
-            $properties['outerHeight'] = $properties['y'] + $properties['margin'][2] + $properties['padding'][2];
-            $properties['height'] = $properties['y'] + $properties['padding'][2] - $properties['margin'][0];
-            $properties['innerHeight'] = $properties['y'] - $properties['margin'][0] - $properties['padding'][0];
-        } else {
-            $properties['outerHeight'] = $properties['height'] + $properties['margin'][0] + $properties['margin'][2];
-            $properties['innerHeight'] = $properties['height'] - $properties['padding'][0] - $properties['padding'][2];
-        }
-        $this->styles = array_merge($properties, [
-            'x' => 0,
-            'y' => 0
+        $styles = NodeHelper::mergeStyle($this->styles, $properties);
+        $parentStyles = array_merge($properties, $styles, [
+            'brotherRight' => $styles['x'],
+            'brotherTop' => $styles['y'],
         ]);
+        foreach ($this->children as $node) {
+            $node->refresh($parentStyles);
+            $parentStyles['y'] += $node->placeholderHeight();
+            $parentStyles['brotherRight'] = $node->getRight();
+            $parentStyles['brotherTop'] = $node->getTop();
+        }
+        if (!isset($this->styles['height'])) {
+            $styles['outerHeight'] = $parentStyles['y'] + $styles['margin'][2]
+                + $styles['padding'][2];
+            $styles['height'] = $parentStyles + $styles['padding'][2] - $styles['margin'][0];
+            $styles['innerHeight'] = $parentStyles - $styles['margin'][0] - $styles['padding'][0];
+        } else {
+            $styles['outerHeight'] = $this->styles['height'] + $styles['margin'][0] + $styles['margin'][2];
+            $styles['innerHeight'] = $this->styles['height'] - $styles['padding'][0] - $styles['padding'][2];
+        }
+        $this->computed = $styles;
     }
 
-    public function draw() {
-        $this->refresh();
-        $box = new Canvas();
-        $box->create($this->styles['outerWidth'], $this->styles['outerHeight']);
-        $box->setBackground($this->styles['background']);
+    public function draw(Image $box = null) {
+        if (empty($box)) {
+            $this->refresh([
+                'color' => '#000',
+                'font-size' => 16
+            ]);
+            $box = new Canvas();
+            $box->create($this->computed['outerWidth'], $this->computed['outerHeight']);
+            if (!isset($this->computed['background'])) {
+                $this->computed['background'] = '#fff';
+            }
+        }
+        if (isset($this->computed['background'])) {
+            if ($this->computed['background'] instanceof ImgNode) {
+                $this->computed['background']->refresh($this->computed);
+                $this->computed['background']->draw($box);
+            } else {
+                $box->setBackground($this->computed['background']);
+            }
+        }
         foreach ($this->children as $node) {
             $node->draw($box);
         }
@@ -88,8 +72,8 @@ class BoxNode {
      * @param array $properties
      * @return BoxNode
      */
-    public static function create(array $properties) {
-        return (new static())->setProperties($properties);
+    public static function create(array $properties = []) {
+        return (new static())->setStyles($properties);
     }
 
     public static function parse($content) {

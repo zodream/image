@@ -4,12 +4,7 @@ namespace Zodream\Image\Node;
 use Zodream\Image\Image;
 use Zodream\Image\ImageStatic;
 
-class ImgNode {
-    /**
-     * 设置的属性
-     * @var array
-     */
-    protected $properties = [];
+class ImgNode extends BaseNode {
 
     /**
      * @var string
@@ -21,38 +16,16 @@ class ImgNode {
      */
     protected $image;
 
-    /**
-     * 生成的属性
-     * @var array
-     */
-    protected $styles = [];
-
-    public function __construct($src) {
+    public function __construct($src, array $properties = []) {
         $this->setSrc($src);
-    }
-
-
-    /**
-     * @param array $properties
-     * @return ImgNode
-     */
-    public function setProperties(array $properties) {
-        $this->properties = $properties;
-        $this->styles = [];
-        return $this;
-    }
-
-    public function property($name, $value) {
-        $this->properties[$name] = $value;
-        $this->styles = [];
-        return $this;
+        $this->setStyles($properties);
     }
 
     /**
      * @param string $src
      * @return ImgNode
      */
-    public function setSrc($src) {
+    public function setSrc(string $src) {
         $this->src = trim($src);
         $this->image = null;
         return $this;
@@ -62,39 +35,39 @@ class ImgNode {
         if (empty($this->image)) {
             $this->image = ImageStatic::make($this->src);
         }
-        $this->styles = [
+        $this->computed = [
             'x' => $properties['x'],
             'y' => $properties['y'],
-            'padding' => NodeHelper::padding($this->properties),
-            'margin' => NodeHelper::padding($this->properties, 'margin'),
+            'padding' => NodeHelper::padding($this->styles),
+            'margin' => NodeHelper::padding($this->styles, 'margin'),
         ];
-        $this->styles['width'] = $this->getWidth($properties);
-        $this->styles['height'] = $this->getHeight($properties);
-        if (isset($this->properties['fixed'])) {
-            $this->styles['x'] = $this->properties['x'];
-            $this->styles['y'] = $this->properties['y'];
+        $this->computed['width'] = $this->getWidth($properties);
+        $this->computed['height'] = $this->getHeight($properties);
+        if (isset($this->styles['fixed'])) {
+            $this->computed['x'] = $this->styles['x'];
+            $this->computed['y'] = $this->styles['y'];
         }
-        if (isset($this->properties['center'])) {
-            $this->styles['x'] = ($properties['outerWidth'] - $this->styles['width']) / 2;
+        if (isset($this->styles['center'])) {
+            $this->computed['x'] = ($properties['outerWidth'] - $this->styles['width']) / 2;
         }
-        $this->styles['outerHeight'] = $this->styles['height']
+        $this->computed['outerHeight'] = $this->styles['height']
             + $this->styles['padding'][0] + $this->styles['padding'][2]
             + $this->styles['margin'][0] + $this->styles['margin'][2];
-        return isset($this->properties['fixed']) ? 0 : $this->outerHeight();
+        return isset($this->styles['fixed']) ? 0 : $this->outerHeight();
     }
 
     public function outerHeight() {
-        return $this->styles['outerHeight'];
+        return $this->computed['outerHeight'];
     }
 
     protected function getWidth(array $properties) {
-        if (!isset($this->properties['width'])
-            && isset($this->properties['height'])
-            && is_numeric($this->properties['height'])) {
-            return $this->properties['height'] * $this->image->getWidth()
+        if (!isset($this->styles['width'])
+            && isset($this->styles['height'])
+            && is_numeric($this->styles['height'])) {
+            return $this->styles['height'] * $this->image->getWidth()
                 / $this->image->getHeight();
         }
-        $width = NodeHelper::width(isset($this->properties['width']) ? $this->properties['width'] : null, $properties);
+        $width = NodeHelper::width(isset($this->styles['width']) ? $this->styles['width'] : null, $properties);
         if (!empty($width)) {
             return $width;
         }
@@ -102,25 +75,25 @@ class ImgNode {
     }
 
     protected function getHeight(array $properties) {
-        if (!isset($this->properties['height'])
-            && isset($this->properties['width'])
-            && is_numeric($this->properties['width'])) {
-            return $this->properties['width'] * $this->image->getHeight() / $this->image->getWidth();
+        if (!isset($this->styles['height'])
+            && isset($this->styles['width'])
+            && is_numeric($this->styles['width'])) {
+            return $this->styles['width'] * $this->image->getHeight() / $this->image->getWidth();
         }
-        $width = NodeHelper::width(isset($this->properties['height']) ? $this->properties['height'] : null, $properties);
+        $width = NodeHelper::width(isset($this->styles['height']) ? $this->styles['height'] : null, $properties);
         if (!empty($width)) {
             return $width;
         }
         return $this->image->getHeight();
     }
 
-    public function draw(Image $box) {
+    public function draw(Image $box = null) {
         $box->copyFromWithResize($this->image, 0, 0,
-            $this->styles['x'], $this->styles['y'],
-            0, 0, $this->styles['width'], $this->styles['height']);
+            $this->computed['x'], $this->computed['y'],
+            0, 0, $this->computed['width'], $this->computed['height']);
     }
 
     public static function create($src, array $properties = []) {
-        return (new static($src))->setProperties($properties);
+        return (new static($src))->setStyles($properties);
     }
 }
