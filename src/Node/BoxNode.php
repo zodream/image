@@ -13,33 +13,38 @@ class BoxNode extends BaseNode {
     protected $children = [];
 
     public function append(...$nodes) {
+        if (func_num_args() === 1 && is_array($nodes[0])) {
+            $nodes = $nodes[0];
+        }
         $this->children = array_merge($this->children, $nodes);
         $this->computed = [];
         return $this;
     }
 
-    public function refresh(array $properties = []) {
-        $styles = NodeHelper::mergeStyle($this->styles, $properties);
-        $parentStyles = array_merge($properties, $styles, [
-            'brotherRight' => $styles['x'],
-            'brotherTop' => $styles['y'],
+    protected function refreshSize(array $styles, $parentInnerWidth, array $parentStyles) {
+        $styles = parent::refreshSize($styles, $parentInnerWidth, $parentStyles);
+        $styles['parentX'] = $styles['x'];
+        $styles['parentY'] = $styles['y'];
+        $parentStyles = array_merge($parentStyles, $styles, [
+            'x' => $styles['x'] + $styles['padding'][3],
+            'y' => $styles['y'] + $styles['padding'][0],
         ]);
         foreach ($this->children as $node) {
             $node->refresh($parentStyles);
             $parentStyles['y'] += $node->placeholderHeight();
-            $parentStyles['brotherRight'] = $node->getRight();
-            $parentStyles['brotherTop'] = $node->getTop();
+            $parentStyles['brother'] = $node;
         }
         if (!isset($this->styles['height'])) {
             $styles['outerHeight'] = $parentStyles['y'] + $styles['margin'][2]
                 + $styles['padding'][2];
-            $styles['height'] = $parentStyles + $styles['padding'][2] - $styles['margin'][0];
-            $styles['innerHeight'] = $parentStyles - $styles['margin'][0] - $styles['padding'][0];
+            $styles['height'] = $parentStyles['y'] + $styles['padding'][2] - $styles['margin'][0];
+            $styles['innerHeight'] = $parentStyles['y'] - $styles['margin'][0] - $styles['padding'][0];
         } else {
             $styles['outerHeight'] = $this->styles['height'] + $styles['margin'][0] + $styles['margin'][2];
             $styles['innerHeight'] = $this->styles['height'] - $styles['padding'][0] - $styles['padding'][2];
         }
-        $this->computed = $styles;
+        $styles['radius'] = NodeHelper::padding($styles, 'radius');
+        return $styles;
     }
 
     public function draw(Image $box = null) {
@@ -55,17 +60,92 @@ class BoxNode extends BaseNode {
             }
         }
         if (isset($this->computed['background'])) {
+            $x = $this->computed['x'];
+            $y = $this->computed['y'];
+            $width = $this->computed['width'];
+            $height = $this->computed['height'];
+            $radius = $this->computed['radius'];
             if ($this->computed['background'] instanceof ImgNode) {
-                $this->computed['background']->refresh($this->computed);
-                $this->computed['background']->draw($box);
+                $this->drawBackgroundImage($box, $this->computed['background'], $x, $y, $width, $height, $radius);
             } else {
-                $box->setBackground($this->computed['background']);
+                $this->drawFill($box, $this->computed['background'], $x, $y, $width, $height, $radius);
             }
         }
         foreach ($this->children as $node) {
             $node->draw($box);
         }
         return $box;
+    }
+
+    protected function drawFill(Image $box, $color, $x, $y, $width, $height, $radius) {
+        if ($this->isEmpty($radius)) {
+            $box->setBackground($color);
+            return;
+        }
+        for ($i = 0; $i < $width; $i ++) {
+            for ($j = 0; $j < $height; $j ++) {
+                if ($this->isBoxInner($i, $j, $width, $height, $radius)) {
+                    $box->setColor($x + $i, $y + $j, $color);
+                }
+            }
+        }
+    }
+
+    protected function drawBackgroundImage(Image $box, ImgNode $node, $x, $y, $width, $height, $radius) {
+        if ($this->isEmpty($radius)) {
+            $node->refresh($this->computed);
+            $node->draw($box);
+            return;
+        }
+        $image = $node->getImage();
+        $image->scale($width, $height);
+        for ($i = 0; $i < $width; $i ++) {
+            for ($j = 0; $j < $height; $j ++) {
+                if ($this->isBoxInner($i, $j, $width, $height, $radius)) {
+                    $box->setColor($x + $i, $y + $j, $image->getColor($i, $j));
+                }
+            }
+        }
+    }
+
+    protected function isBoxInner($x, $y, $width, $height, $radius) {
+        if ($radius[0] > 0) {
+            if ($x < $radius[0] && $y < $radius[0]) {
+                return pow($radius[0] - $x, 2) + pow($radius[0] - $y, 2)
+                    < pow($radius[0], 2);
+            }
+        }
+        if ($radius[1] > 0) {
+            if ($x > $width - $radius[1] && $y < $radius[1]) {
+                return pow($x - $width + $radius[1], 2) + pow($radius[1] - $y, 2)
+                    < pow($radius[1], 2);
+            }
+        }
+        if ($radius[2] > 0) {
+            if ($x > $width - $radius[2] && $y > $height - $radius[2]) {
+                return pow($x - $width + $radius[2], 2) + pow($y - $height + $radius[2], 2)
+                    < pow($radius[2], 2);
+            }
+        }
+        if ($radius[3] > 0) {
+            if ($x < $radius[3] && $y > $height - $radius[3]) {
+                return pow($radius[3] - $x, 2) + pow($y - $height + $radius[3], 2)
+                    < pow($radius[3], 2);
+            }
+        }
+        return $x > 0 && $x < $width && $y > 0 && $y < $height;
+    }
+
+    protected function isEmpty($data) {
+        if (empty($data)) {
+            return true;
+        }
+        foreach ($data as $val) {
+            if (!empty($val)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

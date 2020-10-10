@@ -15,7 +15,8 @@
     "require": {
         "php": ">=7.0.0",
         "khanamiryan/qrcode-detector-decoder": "^1.0",
-        "bacon/bacon-qr-code": "^2.0"
+        "bacon/bacon-qr-code": "^2.0",
+        "ext-gd": "*"
     },
     "autoload": {
         "psr-4": {

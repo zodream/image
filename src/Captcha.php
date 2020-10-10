@@ -5,7 +5,8 @@ namespace Zodream\Image;
  *
  * @author Jason
  */
-use Zodream\Infrastructure\Security\Hash;
+
+use Zodream\Helpers\Security\Hash;
 use Zodream\Infrastructure\Traits\ConfigTrait;
 use Zodream\Service\Factory;
 
@@ -82,7 +83,7 @@ class Captcha extends WaterMark {
         list($this->code, $this->chars) = $this->configs['mode'] == 1
             ? $this->generateFormula() : $this->generateRandomChar();
         if ($setSession) {
-            Factory::session()->set(self::SESSION_KEY, [
+            session()->set(self::SESSION_KEY, [
                 'sensitive' => $this->configs['sensitive'],
                 'key'       => Hash::make($this->configs['sensitive'] || is_numeric($this->code) ? $this->code : strtolower($this->code))
             ]);
@@ -232,14 +233,14 @@ class Captcha extends WaterMark {
      * @throws \Exception
      */
     public function verify($value) {
-        if (!Factory::session()->has(self::SESSION_KEY)) {
+        if (!session()->has(self::SESSION_KEY)) {
             return false;
         }
-        $data = Factory::session()->get(self::SESSION_KEY);
+        $data = session()->get(self::SESSION_KEY);
         if (!$data['sensitive'] && !is_numeric($value)) {
             $value = strtolower($value);
         }
-        Factory::session()->delete(self::SESSION_KEY);
+        session()->delete(self::SESSION_KEY);
         return Hash::verify($value, $data['key']);
     }
 }

@@ -1,6 +1,911 @@
 <?php
 namespace Zodream\Image\Adapters;
 
+use InvalidArgumentException;
+use RuntimeException;
+use Zodream\Image\Base\Box;
+use Zodream\Image\Base\BoxInterface;
+use Zodream\Image\Base\FontInterface;
+use Zodream\Image\Base\Matrix;
+use Zodream\Image\Base\Point;
+use Zodream\Image\Base\PointInterface;
+
 class Imagick implements ImageAdapter {
 
+    /**
+     * @var \Imagick
+     */
+    protected $resource;
+
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Imagine\Image\ImagineInterface::open()
+     */
+    public function open($path)
+    {
+        $loader = $path instanceof LoaderInterface ? $path : $this->getClassFactory()->createFileLoader($path);
+        $path = $loader->getPath();
+
+        try {
+            if ($loader->isLocalFile()) {
+                if (DIRECTORY_SEPARATOR === '\\' && PHP_INT_SIZE === 8 && PHP_VERSION_ID >= 70100 && PHP_VERSION_ID < 70200) {
+                    $imagick = new \Imagick();
+                    // PHP 7.1 64 bit on Windows: don't pass the file name to the constructor: it may break PHP - see https://github.com/mkoppanen/imagick/issues/252
+                    $imagick->readImageBlob($loader->getData(), $path);
+                } else {
+                    $imagick = new \Imagick($loader->getPath());
+                }
+            } else {
+                $imagick = new \Imagick();
+                $imagick->readImageBlob($loader->getData());
+            }
+            $image = $this->getClassFactory()->createImage(ClassFactoryInterface::HANDLE_IMAGICK, $imagick, $this->createPalette($imagick), $this->getMetadataReader()->readFile($loader));
+        } catch (\ImagickException $e) {
+            throw new RuntimeException(sprintf('Unable to open image %s', $path), $e->getCode(), $e);
+        }
+
+        return $image;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Imagine\Image\ImagineInterface::create()
+     */
+    public function create(BoxInterface $size, ColorInterface $color = null)
+    {
+        $width = $size->getWidth();
+        $height = $size->getHeight();
+
+        $palette = null !== $color ? $color->getPalette() : new RGB();
+        $color = null !== $color ? $color : $palette->color('fff');
+
+        try {
+            $pixel = new \ImagickPixel((string) $color);
+            $pixel->setColorValue(\Imagick::COLOR_ALPHA, $color->getAlpha() / 100);
+
+            $imagick = new \Imagick();
+            $imagick->newImage($width, $height, $pixel);
+            $imagick->setImageMatte(true);
+            $imagick->setImageBackgroundColor($pixel);
+
+            if (version_compare('6.3.1', $this->getVersion($imagick)) < 0) {
+                // setImageOpacity was replaced with setImageAlpha in php-imagick v3.4.3
+                if (method_exists($imagick, 'setImageAlpha')) {
+                    $imagick->setImageAlpha($pixel->getColorValue(\Imagick::COLOR_ALPHA));
+                } else {
+                    ErrorHandling::ignoring(E_DEPRECATED, function () use ($imagick, $pixel) {
+                        $imagick->setImageOpacity($pixel->getColorValue(\Imagick::COLOR_ALPHA));
+                    });
+                }
+            }
+
+            $pixel->clear();
+            $pixel->destroy();
+
+            return $this->getClassFactory()->createImage(ClassFactoryInterface::HANDLE_IMAGICK, $imagick, $palette, new MetadataBag());
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Could not create empty image', $e->getCode(), $e);
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Imagine\Image\ImagineInterface::load()
+     */
+    public function load($string)
+    {
+        try {
+            $imagick = new \Imagick();
+
+            $imagick->readImageBlob($string);
+            $imagick->setImageMatte(true);
+
+            return $this->getClassFactory()->createImage(ClassFactoryInterface::HANDLE_IMAGICK, $imagick, $this->createPalette($imagick), $this->getMetadataReader()->readData($string));
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Could not load image from string', $e->getCode(), $e);
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function read($resource)
+    {
+        if (!is_resource($resource)) {
+            throw new InvalidArgumentException('Variable does not contain a stream resource');
+        }
+
+        $content = stream_get_contents($resource);
+
+        try {
+            $imagick = new \Imagick();
+            $imagick->readImageBlob($content);
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Could not read image from resource', $e->getCode(), $e);
+        }
+
+        return $this->getClassFactory()->createImage(ClassFactoryInterface::HANDLE_IMAGICK, $imagick, $this->createPalette($imagick), $this->getMetadataReader()->readData($content, $resource));
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function arc(PointInterface $center, BoxInterface $size, $start, $end, $color, $thickness = 1)
+    {
+        $thickness = max(0, (int) round($thickness));
+        if ($thickness === 0) {
+            return $this;
+        }
+        $x = $center->getX();
+        $y = $center->getY();
+        $width = $size->getWidth();
+        $height = $size->getHeight();
+
+        try {
+            $pixel = $this->getColor($color);
+            $arc = new \ImagickDraw();
+
+            $arc->setStrokeColor($pixel);
+            $arc->setStrokeWidth($thickness);
+            $arc->setFillColor('transparent');
+            $arc->arc($x - $width / 2, $y - $height / 2, $x + $width / 2, $y + $height / 2, $start, $end);
+
+            $this->resource->drawImage($arc);
+
+            $pixel->clear();
+            $pixel->destroy();
+
+            $arc->clear();
+            $arc->destroy();
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Draw arc operation failed', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function chord(PointInterface $center, BoxInterface $size, $start, $end, $color, $fill = false, $thickness = 1)
+    {
+        $thickness = max(0, (int) round($thickness));
+        if ($thickness === 0 && !$fill) {
+            return $this;
+        }
+        $x = $center->getX();
+        $y = $center->getY();
+        $width = $size->getWidth();
+        $height = $size->getHeight();
+
+        try {
+            $pixel = $this->getColor($color);
+            $chord = new \ImagickDraw();
+
+            $chord->setStrokeColor($pixel);
+            $chord->setStrokeWidth($thickness);
+
+            if ($fill) {
+                $chord->setFillColor($pixel);
+            } else {
+                $from = new Point(round($x + $width / 2 * cos(deg2rad($start))), round($y + $height / 2 * sin(deg2rad($start))));
+                $to = new Point(round($x + $width / 2 * cos(deg2rad($end))), round($y + $height / 2 * sin(deg2rad($end))));
+                $this->line($from, $to, $color, $thickness);
+                $chord->setFillColor('transparent');
+            }
+
+            $chord->arc(
+                $x - $width / 2,
+                $y - $height / 2,
+                $x + $width / 2,
+                $y + $height / 2,
+                $start,
+                $end
+            );
+
+            $this->resource->drawImage($chord);
+
+            $pixel->clear();
+            $pixel->destroy();
+
+            $chord->clear();
+            $chord->destroy();
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Draw chord operation failed', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function circle(PointInterface $center, $radius, $color, $fill = false, $thickness = 1)
+    {
+        $diameter = $radius * 2;
+
+        return $this->ellipse($center, new Box($diameter, $diameter), $color, $fill, $thickness);
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function ellipse(PointInterface $center, BoxInterface $size, $color, $fill = false, $thickness = 1)
+    {
+        $thickness = max(0, (int) round($thickness));
+        if ($thickness === 0 && !$fill) {
+            return $this;
+        }
+        $width = $size->getWidth();
+        $height = $size->getHeight();
+        try {
+            $pixel = $this->getColor($color);
+            $ellipse = new \ImagickDraw();
+
+            $ellipse->setStrokeColor($pixel);
+            $ellipse->setStrokeWidth($thickness);
+
+            if ($fill) {
+                $ellipse->setFillColor($pixel);
+            } else {
+                $ellipse->setFillColor('transparent');
+            }
+
+            $ellipse->ellipse(
+                $center->getX(),
+                $center->getY(),
+                $width / 2,
+                $height / 2,
+                0, 360
+            );
+
+            if (false === $this->resource->drawImage($ellipse)) {
+                throw new RuntimeException('Ellipse operation failed');
+            }
+
+            $pixel->clear();
+            $pixel->destroy();
+
+            $ellipse->clear();
+            $ellipse->destroy();
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Draw ellipse operation failed', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function line(PointInterface $start, PointInterface $end, $color, $thickness = 1)
+    {
+        $thickness = max(0, (int) round($thickness));
+        if ($thickness === 0) {
+            return $this;
+        }
+        try {
+            $pixel = $this->getColor($color);
+            $line = new \ImagickDraw();
+
+            $line->setStrokeColor($pixel);
+            $line->setStrokeWidth($thickness);
+            $line->setFillColor($pixel);
+            $line->line(
+                $start->getX(),
+                $start->getY(),
+                $end->getX(),
+                $end->getY()
+            );
+
+            $this->resource->drawImage($line);
+
+            $pixel->clear();
+            $pixel->destroy();
+
+            $line->clear();
+            $line->destroy();
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Draw line operation failed', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function pieSlice(PointInterface $center, BoxInterface $size, $start, $end, $color, $fill = false, $thickness = 1)
+    {
+        $thickness = max(0, (int) round($thickness));
+        if ($thickness === 0 && !$fill) {
+            return $this;
+        }
+        $width = $size->getWidth();
+        $height = $size->getHeight();
+
+        $x1 = round($center->getX() + $width / 2 * cos(deg2rad($start)));
+        $y1 = round($center->getY() + $height / 2 * sin(deg2rad($start)));
+        $x2 = round($center->getX() + $width / 2 * cos(deg2rad($end)));
+        $y2 = round($center->getY() + $height / 2 * sin(deg2rad($end)));
+
+        if ($fill) {
+            $this->chord($center, $size, $start, $end, $color, true, $thickness);
+            $this->polygon(
+                array(
+                    $center,
+                    new Point($x1, $y1),
+                    new Point($x2, $y2),
+                ),
+                $color,
+                true,
+                $thickness
+            );
+        } else {
+            $this->arc($center, $size, $start, $end, $color, $thickness);
+            $this->line($center, new Point($x1, $y1), $color, $thickness);
+            $this->line($center, new Point($x2, $y2), $color, $thickness);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function dot(PointInterface $position, $color)
+    {
+        $x = $position->getX();
+        $y = $position->getY();
+
+        try {
+            $pixel = $this->getColor($color);
+            $point = new \ImagickDraw();
+
+            $point->setFillColor($pixel);
+            $point->point($x, $y);
+
+            $this->resource->drawimage($point);
+
+            $pixel->clear();
+            $pixel->destroy();
+
+            $point->clear();
+            $point->destroy();
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Draw point operation failed', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function rectangle(PointInterface $leftTop, PointInterface $rightBottom, $color, $fill = false, $thickness = 1)
+    {
+        $thickness = max(0, (int) round($thickness));
+        if ($thickness === 0 && !$fill) {
+            return $this;
+        }
+        $minX = min($leftTop->getX(), $rightBottom->getX());
+        $maxX = max($leftTop->getX(), $rightBottom->getX());
+        $minY = min($leftTop->getY(), $rightBottom->getY());
+        $maxY = max($leftTop->getY(), $rightBottom->getY());
+
+        try {
+            $pixel = $this->getColor($color);
+            $rectangle = new \ImagickDraw();
+            $rectangle->setStrokeColor($pixel);
+            $rectangle->setStrokeWidth($thickness);
+
+            if ($fill) {
+                $rectangle->setFillColor($pixel);
+            } else {
+                $rectangle->setFillColor('transparent');
+            }
+
+            $rectangle->rectangle($minX, $minY, $maxX, $maxY);
+            $this->resource->drawImage($rectangle);
+
+            $pixel->clear();
+            $pixel->destroy();
+
+            $rectangle->clear();
+            $rectangle->destroy();
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Draw rectangle operation failed', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function polygon(array $coordinates, $color, $fill = false, $thickness = 1)
+    {
+        if (count($coordinates) < 3) {
+            throw new InvalidArgumentException(sprintf('Polygon must consist of at least 3 coordinates, %d given', count($coordinates)));
+        }
+
+        $thickness = max(0, (int) round($thickness));
+        if ($thickness === 0 && !$fill) {
+            return $this;
+        }
+        $points = array_map(function (PointInterface $p) {
+            return array('x' => $p->getX(), 'y' => $p->getY());
+        }, $coordinates);
+
+        try {
+            $pixel = $this->getColor($color);
+            $polygon = new \ImagickDraw();
+
+            $polygon->setStrokeColor($pixel);
+            $polygon->setStrokeWidth($thickness);
+
+            if ($fill) {
+                $polygon->setFillColor($pixel);
+            } else {
+                $polygon->setFillColor('transparent');
+            }
+
+            $polygon->polygon($points);
+            $this->resource->drawImage($polygon);
+
+            $pixel->clear();
+            $pixel->destroy();
+
+            $polygon->clear();
+            $polygon->destroy();
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Draw polygon operation failed', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function text($string, FontInterface $font, PointInterface $position, $angle = 0, $width = null)
+    {
+        try {
+            $pixel = $this->getColor($font->getColor());
+            $text = new \ImagickDraw();
+
+            $text->setFont($font->getFile());
+            /*
+             * @see http://www.php.net/manual/en/imagick.queryfontmetrics.php#101027
+             *
+             * ensure font resolution is the same as GD's hard-coded 96
+             */
+            if (version_compare(phpversion('imagick'), '3.0.2', '>=')) {
+                $text->setResolution(96, 96);
+                $text->setFontSize($font->getSize());
+            } else {
+                $text->setFontSize((int) ($font->getSize() * (96 / 72)));
+            }
+            $text->setFillColor($pixel);
+            $text->setTextAntialias(true);
+
+            if ($width !== null) {
+                $string = $font->wrapText($string, $width, $angle);
+            }
+
+            $info = $this->resource->queryFontMetrics($text, $string);
+            $rad = deg2rad($angle);
+            $cos = cos($rad);
+            $sin = sin($rad);
+
+            // round(0 * $cos - 0 * $sin)
+            $x1 = 0;
+            $x2 = round($info['characterWidth'] * $cos - $info['characterHeight'] * $sin);
+            // round(0 * $sin + 0 * $cos)
+            $y1 = 0;
+            $y2 = round($info['characterWidth'] * $sin + $info['characterHeight'] * $cos);
+
+            $xdiff = 0 - min($x1, $x2);
+            $ydiff = 0 - min($y1, $y2);
+
+            $this->resource->annotateImage(
+                $text, $position->getX() + $x1 + $xdiff,
+                $position->getY() + $y2 + $ydiff, $angle, $string
+            );
+
+            $pixel->clear();
+            $pixel->destroy();
+
+            $text->clear();
+            $text->destroy();
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Draw text operation failed', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    public function fontSize($string, FontInterface $font, $angle = 0)
+    {
+        $text = new \ImagickDraw();
+
+        $text->setFont($font->getFile());
+
+        /*
+         * @see http://www.php.net/manual/en/imagick.queryfontmetrics.php#101027
+         *
+         * ensure font resolution is the same as GD's hard-coded 96
+         */
+        if (version_compare(phpversion('imagick'), '3.0.2', '>=')) {
+            $text->setResolution(96, 96);
+            $text->setFontSize($font->getSize());
+        } else {
+            $text->setFontSize((int) ($font->getSize() * (96 / 72)));
+        }
+
+        $info = $this->resource->queryFontMetrics($text, $string);
+        return new Box($info['textWidth'], $info['textHeight']);
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function gamma($correction)
+    {
+        try {
+            $this->resource->gammaImage($correction, \Imagick::CHANNEL_ALL);
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Failed to apply gamma correction to the image', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function negative()
+    {
+        try {
+            $this->resource->negateImage(false, \Imagick::CHANNEL_ALL);
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Failed to negate the image', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function grayscale()
+    {
+        try {
+            $this->resource->setImageType(\Imagick::IMGTYPE_GRAYSCALE);
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Failed to grayscale the image', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function colorize($color)
+    {
+        if (!$color instanceof RGB) {
+            throw new NotSupportedException('Colorize with non-rgb color is not supported');
+        }
+
+        try {
+            $this->resource->colorizeImage((string) $color, new \ImagickPixel(sprintf('rgba(%d, %d, %d, 1)', $color->getRed(), $color->getGreen(), $color->getBlue())));
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Failed to colorize the image', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function sharpen()
+    {
+        try {
+            $this->resource->sharpenImage(2, 1);
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Failed to sharpen the image', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function blur($sigma = 1)
+    {
+        try {
+            $this->resource->gaussianBlurImage(0, $sigma);
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Failed to blur the image', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function brightness($brightness)
+    {
+        $brightness = (int) round($brightness);
+        if ($brightness < -100 || $brightness > 100) {
+            throw new InvalidArgumentException(sprintf('The %1$s argument can range from %2$d to %3$d, but you specified %4$d.', '$brightness', -100, 100, $brightness));
+        }
+        try {
+            if (method_exists($this->resource, 'brightnesscontrastimage')) {
+                // Available since Imagick 3.3.0
+                $this->resource->brightnesscontrastimage($brightness, 0);
+            } else {
+                // This *emulates* brightnesscontrastimage
+                $sign = $brightness < 0 ? -1 : 1;
+                $v = abs($brightness) / 100;
+                $v = (1 / (sin(($v * .99999 * M_PI_2) + M_PI_2))) - 1;
+                $this->resource->modulateimage(100 + $sign * $v * 100, 100, 100);
+            }
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Failed to brightness the image');
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function convolve(Matrix $matrix)
+    {
+        if ($matrix->getWidth() !== 3 || $matrix->getHeight() !== 3) {
+            throw new InvalidArgumentException(sprintf('A convolution matrix must be 3x3 (%dx%d provided).', $matrix->getWidth(), $matrix->getHeight()));
+        }
+        try {
+            $this->resource->convolveImage($matrix->getValueList());
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Failed to convolve the image');
+        }
+
+        return $this;
+    }
+
+    public function copy()
+    {
+        try {
+            return clone $this;
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Copy operation failed', $e->getCode(), $e);
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function paste(ImageAdapter $image, PointInterface $start, $alpha = 100)
+    {
+        if (!$image instanceof self) {
+            throw new InvalidArgumentException(sprintf('Imagick\Image can only paste() Imagick\Image instances, %s given', get_class($image)));
+        }
+
+        $alpha = (int) round($alpha);
+        if ($alpha < 0 || $alpha > 100) {
+            throw new InvalidArgumentException(sprintf('The %1$s argument can range from %2$d to %3$d, but you specified %4$d.', '$alpha', 0, 100, $alpha));
+        }
+
+        if ($alpha === 100) {
+            $pasteMe = $image->resource;
+        } elseif ($alpha > 0) {
+            $pasteMe = $image->cloneImagick();
+            // setImageOpacity was replaced with setImageAlpha in php-imagick v3.4.3
+            if (method_exists($pasteMe, 'setImageAlpha')) {
+                $pasteMe->setImageAlpha($alpha / 100);
+            } else {
+                ErrorHandling::ignoring(E_DEPRECATED, function () use ($pasteMe, $alpha) {
+                    $pasteMe->setImageOpacity($alpha / 100);
+                });
+            }
+        } else {
+            $pasteMe = null;
+        }
+        if ($pasteMe !== null) {
+            try {
+                $this->resource->compositeImage($pasteMe, \Imagick::COMPOSITE_DEFAULT, $start->getX(), $start->getY());
+                $error = null;
+            } catch (\ImagickException $e) {
+                $error = $e;
+            }
+            if ($pasteMe !== $image->imagick) {
+                $pasteMe->clear();
+                $pasteMe->destroy();
+            }
+            if ($error !== null) {
+                throw new RuntimeException('Paste operation failed', $error->getCode(), $error);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function resize(BoxInterface $size, $filter = ImageAdapter::FILTER_UNDEFINED)
+    {
+        try {
+            if ($this->layers()->count() > 1) {
+                $this->resource = $this->resource->coalesceImages();
+                foreach ($this->resource as $frame) {
+                    $frame->resizeImage($size->getWidth(), $size->getHeight(), $this->getFilter($filter), 1);
+                }
+                $this->resource = $this->resource->deconstructImages();
+            } else {
+                $this->resource->resizeImage($size->getWidth(), $size->getHeight(), $this->getFilter($filter), 1);
+            }
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Resize operation failed', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function rotate($angle, $background = null)
+    {
+        if ($background === null) {
+            $background = '#fff';
+        }
+
+        try {
+            $pixel = $this->getColor($background);
+
+            $this->resource->rotateimage($pixel, $angle);
+
+            $pixel->clear();
+            $pixel->destroy();
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Rotate operation failed', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function save($path = null, array $options = array())
+    {
+        $path = null === $path ? $this->resource->getImageFilename() : $path;
+        if (null === $path) {
+            throw new RuntimeException('You can omit save path only if image has been open from a file');
+        }
+
+        try {
+            $this->prepareOutput($options, $path);
+            $this->resource->writeImages($path, true);
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Save operation failed', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     */
+    public function __clone()
+    {
+        if ($this->resource instanceof \Imagick) {
+            $this->resource = $this->cloneImagick();
+        }
+    }
+
+    /**
+     * Destroys allocated imagick resources.
+     */
+    public function __destruct()
+    {
+        if ($this->resource instanceof \Imagick) {
+            $this->resource->clear();
+            $this->resource->destroy();
+        }
+    }
+
+    /**
+     * Gets specifically formatted color string from ColorInterface instance.
+     *
+     * @return string
+     */
+    private function getColor($color)
+    {
+        $pixel = new \ImagickPixel((string) $color);
+        $pixel->setColorValue(\Imagick::COLOR_ALPHA, $color->getAlpha() / 100);
+
+        return $pixel;
+    }
+
+    protected function cloneImagick()
+    {
+        // the clone method has been deprecated in imagick 3.1.0b1.
+        // we can't use phpversion('imagick') because it may return `@PACKAGE_VERSION@`
+        // so, let's check if ImagickDraw has the setResolution method, which has been introduced in the same version 3.1.0b1
+        if (method_exists('ImagickDraw', 'setResolution')) {
+            return clone $this->resource;
+        }
+
+        return $this->resource->clone();
+    }
+
+    public function getHeight()
+    {
+        // TODO: Implement getHeight() method.
+    }
+
+    public function getWidth()
+    {
+        // TODO: Implement getWidth() method.
+    }
+
+    public function scale(BoxInterface $box)
+    {
+        // TODO: Implement scale() method.
+    }
+
+    public function getColorAt(PointInterface $point)
+    {
+        // TODO: Implement getColorAt() method.
+    }
+
+    public function crop(PointInterface $start, BoxInterface $size)
+    {
+        // TODO: Implement crop() method.
+    }
+
+    public function saveAs($output = null, $type = '')
+    {
+        // TODO: Implement saveAs() method.
+    }
+
+    public function fill($fill)
+    {
+        // TODO: Implement fill() method.
+    }
 }

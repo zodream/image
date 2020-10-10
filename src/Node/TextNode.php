@@ -31,50 +31,45 @@ class TextNode extends BaseNode {
         return $this;
     }
 
-    public function refresh(array $properties = []) {
-        $this->styles = array_merge($this->styles, [
-            'y' => $properties['y'],
-            'padding' => NodeHelper::padding($this->styles),
-            'margin' => NodeHelper::padding($this->styles, 'margin'),
-        ]);
-        $this->styles['x'] = $properties['x'] + $this->styles['margin'][3] + $this->styles['padding'][3];
-        $this->styles['y'] = $properties['y'] + $this->styles['padding'][0] + $this->styles['margin'][0];
-        $innerWidth = $properties['innerWidth']
-            - $this->styles['margin'][1]
-            - $this->styles['margin'][3]
-            - $this->styles['padding'][3];
-        $this->styles['lineCenter'] = $properties['innerWidth'] / 2 + $properties['x'];
-        $this->styles['size'] = NodeHelper::orDefault('size', $this->styles, $properties, 16);
-        $this->styles['lineSpace'] = NodeHelper::orDefault('lineSpace', $this->styles, $properties, 6);
-        $this->styles['letterSpace'] = NodeHelper::orDefault('letterSpace', $this->styles, $properties, 0);
-        $this->styles['color'] = NodeHelper::orDefault('color', $this->styles, $properties, '#333');
-        $this->styles['font'] = NodeHelper::orDefault('font', $this->styles, $properties, 1);
-        if (strpos($this->styles['font'], '@') === 0) {
-            $this->styles['font'] = $properties[substr($this->styles['font'], 1)];
+    protected function refreshSize(array $styles, $parentInnerWidth, array $parentStyles)
+    {
+        $innerWidth = !isset($styles['width']) || $styles['width'] === 'auto' ? $parentInnerWidth :
+            ($this->styles['width'] - $styles['padding'][1] - $styles['padding'][3]);
+        $styles['lineCenter'] = $parentStyles['innerWidth'] / 2 + $parentStyles['x'];
+        $styles['font-size'] = NodeHelper::orDefault('font-size', $styles, $parentStyles, 16);
+        $styles['lineSpace'] = NodeHelper::orDefault('lineSpace', $styles, $parentStyles, 6);
+        $styles['letterSpace'] = NodeHelper::orDefault('letterSpace', $styles, $parentStyles, 0);
+        $styles['color'] = NodeHelper::orDefault('color', $styles, $parentStyles, '#333');
+        $styles['font'] = NodeHelper::orDefault('font', $styles, $parentStyles, 1);
+        $this->computed = $styles;
+        list($styles['lines'], $styles['contentWidth']) = $this->getLines($innerWidth);
+        if (isset($styles['width']) && $styles['width'] === 'auto') {
+            $styles['width'] = $styles['contentWidth'] + $styles['padding'][1] + $styles['padding'][3];
         }
-        $this->styles['lines'] = $this->getLines($innerWidth);
-        $height = count($this->styles['lines']) * ($this->styles['size'] + $this->styles['lineSpace']);
-        return $height + $this->styles['padding'][0] + $this->styles['padding'][2]
-            + $this->styles['margin'][0] + $this->styles['margin'][2];
+        if (strpos($styles['font'], '@') === 0) {
+            $styles['font'] = $parentStyles[substr($styles['font'], 1)];
+        }
+        $styles['height'] = count($styles['lines']) * ($styles['font-size'] + $styles['lineSpace']);
+        return parent::refreshSize($styles, $parentInnerWidth, $parentStyles);
     }
 
     public function draw(Image $box = null) {
-        $space = ($this->styles['size'] + $this->styles['letterSpace']) / 2;
-        $lineSpace = $this->styles['size'] + $this->styles['lineSpace'];
-        $x = $this->styles['x'];
-        $y = $this->styles['y'] + $this->styles['size'];
-        $center = isset($this->styles['center']);
-        foreach ($this->styles['lines'] as $line) {
+        $space = ($this->computed['font-size'] + $this->computed['letterSpace']) / 2;
+        $lineSpace = $this->computed['font-size'] + $this->computed['lineSpace'];
+        $x = $this->innerX();
+        $y = $this->innerY() + $this->computed['font-size'];
+        $center = isset($this->computed['center']);
+        foreach ($this->computed['lines'] as $line) {
             $startX = $x;
             if ($center) {
-                $startX = $this->styles['lineCenter'] - $this->getFontWidth($line) / 2;
+                $startX = $this->computed['lineCenter'] - $this->getFontWidth($line) / 2;
             }
-            $box->text($line, $startX, $y, $this->styles['size'],
-                        $this->styles['color'], $this->styles['font']);
+            $box->text($line, $startX, $y, $this->computed['font-size'],
+                        $this->computed['color'], $this->computed['font']);
 //            foreach ($line as $font) {
 //                if (!is_null($font)) {
-//                    $box->text($font, $startX, $y, $this->styles['size'],
-//                        $this->styles['color'], $this->styles['font']);
+//                    $box->text($font, $startX, $y, $this->computed['font-size'],
+//                        $this->computed['color'], $this->computed['font']);
 //                }
 //                $startX += $space;
 //            }
@@ -85,12 +80,14 @@ class TextNode extends BaseNode {
     protected function getLines($maxWidth) {
         if (!$this->isWrap()) {
             return [
-                $this->content
+                [$this->content],
+                min($this->getFontWidth($this->content), $maxWidth),
             ];
         }
         $lines = [];
         $length = mb_strlen($this->content);
         $start = 0;
+        $width = 0;
         for ($i = 1; $i <= $length; $i ++) {
             $line = mb_substr($this->content, $start, $i - $start);
             $w = $this->getFontWidth($line);
@@ -98,17 +95,19 @@ class TextNode extends BaseNode {
                 $w > $maxWidth
             ) {
                 $lines[] = mb_substr($this->content, $start, $i - $start - 1);
-                $start = $i -1;
+                $width = $maxWidth;
+                $start = $i - 1;
             } elseif ($i === $length) {
                 $lines[] = $line;
+                $width = max($width, $w);
                 break;
             }
         }
-        return $lines;
+        return [$lines, $width];
     }
 
     protected function getFontWidth($font) {
-        $box = imagettfbbox($this->styles['size'], 0, $this->styles['font'], $font);
+        $box = imagettfbbox($this->computed['font-size'], 0, $this->computed['font'], $font);
         return $box[2];
     }
 

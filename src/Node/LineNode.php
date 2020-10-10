@@ -7,7 +7,6 @@ class LineNode extends BaseNode {
    
 
     public function refresh(array $properties = []) {
-        $this->styles['color'] = $this->styles['color'];
         $this->styles['points'] = isset($this->styles['points']) ? $this->styles['points'] : [];
         if ($this->styles['fixed']) {
             return 0;

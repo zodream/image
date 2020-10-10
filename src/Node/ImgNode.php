@@ -31,10 +31,15 @@ class ImgNode extends BaseNode {
         return $this;
     }
 
-    public function refresh(array $properties = []) {
+    public function getImage() {
         if (empty($this->image)) {
             $this->image = ImageStatic::make($this->src);
         }
+        return $this->image;
+    }
+
+    public function refresh(array $properties = []) {
+        $this->getImage();
         $this->computed = [
             'x' => $properties['x'],
             'y' => $properties['y'],
@@ -50,9 +55,9 @@ class ImgNode extends BaseNode {
         if (isset($this->styles['center'])) {
             $this->computed['x'] = ($properties['outerWidth'] - $this->styles['width']) / 2;
         }
-        $this->computed['outerHeight'] = $this->styles['height']
-            + $this->styles['padding'][0] + $this->styles['padding'][2]
-            + $this->styles['margin'][0] + $this->styles['margin'][2];
+        $this->computed['outerHeight'] = $this->computed['height']
+            + $this->computed['padding'][0] + $this->computed['padding'][2]
+            + $this->computed['margin'][0] + $this->computed['margin'][2];
         return isset($this->styles['fixed']) ? 0 : $this->outerHeight();
     }
 
