@@ -11,7 +11,7 @@ use Zodream\Image\Base\Matrix;
 use Zodream\Image\Base\Point;
 use Zodream\Image\Base\PointInterface;
 
-class Gmagick implements ImageAdapter {
+class Gmagick extends AbstractImage implements ImageAdapter {
 
     /**
      * @var \Gmagick

@@ -27,7 +27,7 @@ class Font implements FontInterface {
      */
     public function __construct($file, $size, $color)
     {
-        $this->file = $file;
+        $this->file = is_string($file) ? $file : intval($file);
         $this->size = $size;
         $this->color = $color;
     }
@@ -95,5 +95,10 @@ class Font implements FontInterface {
         }
 
         return implode("\n", $lines);
+    }
+
+    public function box($string, $angle = 0)
+    {
+        // TODO: Implement box() method.
     }
 }

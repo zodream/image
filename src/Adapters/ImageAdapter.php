@@ -202,6 +202,11 @@ interface ImageAdapter {
 
     public function getWidth();
 
+    /**
+     * @return BoxInterface
+     */
+    public function getSize();
+
     public function scale(BoxInterface $box);
 
     public function getColorAt(PointInterface $point);
@@ -222,7 +227,6 @@ interface ImageAdapter {
 
     public function fill($fill);
 
-
     public function arc(PointInterface $center, BoxInterface  $size, $start, $end, $color, $thickness = 1);
 
     public function chord(PointInterface $center, BoxInterface  $size, $start, $end, $color, $fill = false, $thickness = 1);
@@ -239,11 +243,34 @@ interface ImageAdapter {
 
     public function rectangle(PointInterface $leftTop, PointInterface $rightBottom, $color, $fill = false, $thickness = 1);
 
+    /**
+     * @param array $coordinates
+     * @param $color
+     * @param false $fill
+     * @param int $thickness
+     * @return static
+     */
     public function polygon(array $coordinates, $color, $fill = false, $thickness = 1);
 
+    /**
+     * @param $string
+     * @param FontInterface $font
+     * @param PointInterface $position
+     * @param int $angle
+     * @param null $width
+     * @return static
+     */
     public function text($string, FontInterface $font, PointInterface $position, $angle = 0, $width = null);
 
+    /**
+     * @param $string
+     * @param FontInterface $font
+     * @param int $angle
+     * @return BoxInterface
+     */
     public function fontSize($string, FontInterface $font, $angle = 0);
+
+    public function transparent($color);
 
     public function gamma($correction);
 
@@ -260,4 +287,6 @@ interface ImageAdapter {
     public function brightness($brightness);
 
     public function convolve(Matrix $matrix);
+
+    public function getColor($color);
 }

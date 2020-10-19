@@ -2,7 +2,13 @@
 namespace Zodream\Image\Node;
 
 
+use Zodream\Image\Adapters\ImageAdapter;
+use Zodream\Image\Base\Box;
+use Zodream\Image\Base\Font;
+use Zodream\Image\Base\FontInterface;
+use Zodream\Image\Base\Point;
 use Zodream\Image\Image;
+use Zodream\Image\ImageManager;
 
 class TextNode extends BaseNode {
 
@@ -10,12 +16,25 @@ class TextNode extends BaseNode {
      * @var string
      */
     protected $content;
+    /**
+     * @var ImageAdapter
+     */
+    protected $tmpImage;
+    /**
+     * @var FontInterface
+     */
+    protected $font;
 
     public function __construct($content) {
         $this->text($content);
     }
 
-
+    protected function getTmpImage() {
+        if (empty($this->tmpImage)) {
+            $this->tmpImage = ImageManager::create()->create(new Box(100, 30));
+        }
+        return $this->tmpImage;
+    }
 
     protected function isWrap() {
         return !array_key_exists('wrap', $this->styles)
@@ -41,20 +60,24 @@ class TextNode extends BaseNode {
         $styles['letterSpace'] = NodeHelper::orDefault('letterSpace', $styles, $parentStyles, 0);
         $styles['color'] = NodeHelper::orDefault('color', $styles, $parentStyles, '#333');
         $styles['font'] = NodeHelper::orDefault('font', $styles, $parentStyles, 1);
+
+        if (strpos($styles['font'], '@') === 0) {
+            $styles['font'] = $parentStyles[substr($styles['font'], 1)];
+        }
+        $this->font = new Font($styles['font'], $styles['font-size'],
+            $styles['color']);
         $this->computed = $styles;
         list($styles['lines'], $styles['contentWidth']) = $this->getLines($innerWidth);
         if (isset($styles['width']) && $styles['width'] === 'auto') {
             $styles['width'] = $styles['contentWidth'] + $styles['padding'][1] + $styles['padding'][3];
         }
-        if (strpos($styles['font'], '@') === 0) {
-            $styles['font'] = $parentStyles[substr($styles['font'], 1)];
-        }
         $styles['height'] = count($styles['lines']) * ($styles['font-size'] + $styles['lineSpace']);
+
         return parent::refreshSize($styles, $parentInnerWidth, $parentStyles);
     }
 
     public function draw(Image $box = null) {
-        $space = ($this->computed['font-size'] + $this->computed['letterSpace']) / 2;
+        // $space = ($this->computed['font-size'] + $this->computed['letterSpace']) / 2;
         $lineSpace = $this->computed['font-size'] + $this->computed['lineSpace'];
         $x = $this->innerX();
         $y = $this->innerY() + $this->computed['font-size'];
@@ -64,8 +87,7 @@ class TextNode extends BaseNode {
             if ($center) {
                 $startX = $this->computed['lineCenter'] - $this->getFontWidth($line) / 2;
             }
-            $box->text($line, $startX, $y, $this->computed['font-size'],
-                        $this->computed['color'], $this->computed['font']);
+            $box->instance()->text($line, $this->font, new Point($startX, $y));
 //            foreach ($line as $font) {
 //                if (!is_null($font)) {
 //                    $box->text($font, $startX, $y, $this->computed['font-size'],
@@ -107,8 +129,8 @@ class TextNode extends BaseNode {
     }
 
     protected function getFontWidth($font) {
-        $box = imagettfbbox($this->computed['font-size'], 0, $this->computed['font'], $font);
-        return $box[2];
+        $box = $this->getTmpImage()->fontSize($font, $this->font, 0);
+        return $box->getWidth();
     }
 
     public static function create($content, array $properties = []) {

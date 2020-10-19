@@ -1,6 +1,7 @@
 <?php
 namespace Zodream\Image\Node;
 
+use Zodream\Image\Base\Point;
 use Zodream\Image\Image;
 
 class CircleNode extends BaseNode {
@@ -11,27 +12,24 @@ class CircleNode extends BaseNode {
     }
 
     public function draw(Image $box = null) {
-        $width = $this->computed['radius'] * 2;
         if (empty($this->computed['fill'])) {
-            imagesetthickness($box->image, $this->computed['thickness']);
-            imageellipse($box->image, $this->computed['x'], $this->computed['y'],
-                $width, $width,
-            $box->getColorWithRGB($this->computed['color']));
+            $box->instance()->circle(new Point($this->computed['x'], $this->computed['y']), $this->computed['radius'], $this->computed['color'], false);
             return;
         }
         if (is_string($this->computed['fill'])) {
-            imagefilledellipse($box->image, $this->computed['x'], $this->computed['y'],
-                $width, $width,
-                $box->getColorWithRGB($this->computed['fill']));
+            $box->instance()->circle(new Point($this->computed['x'], $this->computed['y']),
+                $this->computed['radius'], $this->computed['fill'], true);
             return;
         }
         $node = $this->computed['fill'];
+        $width = $this->computed['radius'] * 2;
         if ($node instanceof ImgNode) {
-            $image = $node->getImage();
+            $image = clone $node->getImage();
+            $size = $image->getSize();
             if ($image->getWidth() > $image->getHeight()) {
-                $image->scaleByHeight($this->computed['radius'] * 2);
+                $image->scale($size->widen($width));
             } else {
-                $image->scaleByWidth($this->computed['radius'] * 2);
+                $image->scale($size->heighten($width));
             }
             $r = $this->computed['radius'];
             $startX = $this->computed['x'] - $r;
@@ -39,7 +37,8 @@ class CircleNode extends BaseNode {
             for ($x = 0; $x < $width; $x ++) {
                 for ($y = 0; $y < $width; $y ++) {
                     if (pow($x - $r, 2) + pow($y - $r, 2) < pow($r, 2)) {
-                        $box->setColor($x + $startX, $y + $startY, $image->getColor($x, $y));
+                        $box->instance()->dot(new Point($x + $startX, $y + $startY),
+                            $image->getColorAt(new Point($x, $y)));
                     }
                 }
             }

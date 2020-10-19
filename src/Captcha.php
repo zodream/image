@@ -7,18 +7,21 @@ namespace Zodream\Image;
  */
 
 use Zodream\Helpers\Security\Hash;
+use Zodream\Image\Base\Box;
+use Zodream\Image\Base\Font;
+use Zodream\Image\Base\Point;
 use Zodream\Infrastructure\Traits\ConfigTrait;
 use Zodream\Service\Factory;
 
-class Captcha extends WaterMark {
+class Captcha extends Image {
 
     use ConfigTrait;
 
     const SESSION_KEY = 'captcha';
 
     protected $configKey = 'captcha';
-
-    protected $realType = 'png';
+    protected $width;
+    protected $height;
 
     /**
      * @var string 验证码结果
@@ -35,13 +38,17 @@ class Captcha extends WaterMark {
         'length' => 4,    //验证码长度
         'fontSize' => 0,   //指定字体大小
         'fontColor' => '',   //指定字体颜色, 可以是数组
-        'fontFamily' => null,  //指定的字体
+        'fontFamily' => 3,  //指定的字体
         'width' => 100,
         'height' => 30,
         'angle' => 0,         //角度
         'sensitive' => true,   // 大小写敏感
         'mode' => 0           // 验证码模式： 0 文字 1 公式
     ];
+
+    public function getRealType() {
+        return 'png';
+    }
 
     /**
      * 获取验证码
@@ -69,6 +76,7 @@ class Captcha extends WaterMark {
         $this->createBg();
         $this->createText();
         $this->createLine($level);
+        $this->instance()->setRealType($this->getRealType());
         return $this;
     }
 
@@ -132,10 +140,8 @@ class Captcha extends WaterMark {
      * 生成背景
      */
     protected function createBg() {
-        $this->create($this->width, $this->height);
-        $this->fill(
-            [mt_rand(157, 255), mt_rand(157, 255), mt_rand(157, 255)]
-        );
+        $this->instance()->create(new Box($this->width, $this->height),
+            [mt_rand(157, 255), mt_rand(157, 255), mt_rand(157, 255)]);
     }
 
     /**
@@ -150,14 +156,12 @@ class Captcha extends WaterMark {
             $size = $this->fontSize();
             $angle = $size > $this->height  ? 0 : $this->angle();
             $height = (abs(cos($angle)) + abs(sin($angle))) * $size;
-            $this->addText(
+            $this->instance()->text(
                 $this->chars[$i],
-                 $left + $width * $i,
-                $height > $maxHeight
-                    ? $height : mt_rand($height, $maxHeight),
-                $size,
-                $this->fontColor($i),
-                $this->configs['fontFamily'],
+                 new Font($this->configs['fontFamily'], $size, $this->fontColor($i)),
+                 new Point($left + $width * $i,
+                     $height > $maxHeight
+                         ? $height : mt_rand($height, $maxHeight)),
                 $angle
             );
         }
@@ -186,7 +190,7 @@ class Captcha extends WaterMark {
      * @param integer $i
      * @return array|mixed
      */
-    protected function fontColor($i) {
+    protected function fontColor(int $i) {
         if (empty($this->configs['fontColor'])) {
             return [mt_rand(0, 156), mt_rand(0, 156), mt_rand(0, 156)];
         }
@@ -206,22 +210,20 @@ class Captcha extends WaterMark {
     protected function createLine($level = 1) {
         //线条
         for ($i = 0; $i < 6; $i ++) {
-            $this->line(
-                mt_rand(0, $this->width),
-                mt_rand(0, $this->height),
-                mt_rand(0, $this->width),
-                mt_rand(0, $this->height),
+            $this->instance()->line(
+                new Point(mt_rand(0, $this->width),
+                    mt_rand(0, $this->height)),
+                new Point(mt_rand(0, $this->width),
+                    mt_rand(0, $this->height)),
                 [mt_rand(0, 156), mt_rand(0, 156), mt_rand(0, 156)]);
         }
         //雪花
         for ($i = 0, $length = $level * 20; $i < $length; $i ++) {
-            $this->addText(
+            $this->instance()->text(
                 '*',
-                mt_rand(0, $this->width),
-                mt_rand(0, $this->height),
-                16,
-                [mt_rand(200, 255), mt_rand(200, 255), mt_rand(200, 255)],
-                mt_rand(1, 5)
+                new Font(mt_rand(1, 5), 16, [mt_rand(200, 255), mt_rand(200, 255), mt_rand(200, 255)]),
+                new Point(mt_rand(0, $this->width),
+                    mt_rand(0, $this->height))
             );
         }
     }

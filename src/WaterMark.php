@@ -1,6 +1,10 @@
 <?php
 namespace Zodream\Image;
 
+use Zodream\Image\Adapters\ImageAdapter;
+use Zodream\Image\Base\Font;
+use Zodream\Image\Base\Point;
+
 /**
  * 加水印
  * @author zx648
@@ -27,8 +31,8 @@ class WaterMark extends Image {
 	 */
 	public function getPointByDirection($direction, $width = 0, $height = 0) {
 		if (empty($width) || empty($height)) {
-			$width = $this->getWidth() / 3;
-			$height = $this->getHeight() / 3;
+			$width = $this->instance()->getWidth() / 3;
+			$height = $this->instance()->getHeight() / 3;
 			return array(
 				$direction % 3 * $width,
 				$direction / 3 * $height,
@@ -39,57 +43,57 @@ class WaterMark extends Image {
 		switch ($direction) {
 			case self::Center:
 				return array(
-					($this->getWidth() - $width) / 2,
-					($this->getHeight() - $height) / 2,
+					($this->instance()->getWidth() - $width) / 2,
+					($this->instance()->getHeight() - $height) / 2,
 					$width,
 					$height
 				);
 			case self::Left:
 				return array(
 					0,
-					($this->getHeight() - $height) / 2,
+					($this->instance()->getHeight() - $height) / 2,
 					$width,
 					$height
 				);
 			case self::Top:
 				return array(
-					($this->getWidth() - $width) / 2,
+					($this->instance()->getWidth() - $width) / 2,
 					0,
 					$width,
 					$height
 				);
 			case self::RightTop:
 				return array(
-					$this->getWidth() - $width,
+					$this->instance()->getWidth() - $width,
 					0,
 					$width,
 					$height
 				);
 			case self::Right:
 				return array(
-					$this->getWidth() - $width,
-					($this->getHeight() - $height) / 2,
+					$this->instance()->getWidth() - $width,
+					($this->instance()->getHeight() - $height) / 2,
 					$width,
 					$height
 				);
 			case self::RightBottom:
 				return array(
-					$this->getWidth() - $width,
-					$this->getHeight() - $height,
+					$this->instance()->getWidth() - $width,
+					$this->instance()->getHeight() - $height,
 					$width,
 					$height
 				);
 			case self::Bottom:
 				return array(
-					($this->getWidth() - $width) / 2,
-					$this->getHeight() - $height,
+					($this->instance()->getWidth() - $width) / 2,
+					$this->instance()->getHeight() - $height,
 					$width,
 					$height
 				);
 			case self::LeftBottom:
 				return array(
 					0,
-					$this->getHeight() - $height,
+					$this->instance()->getHeight() - $height,
 					$width,
 					$height
 				);
@@ -112,11 +116,12 @@ class WaterMark extends Image {
      * @param int $fontSize
      * @param string $color
      * @param int $fontFamily
-     * @return array|bool
+     * @return static
      */
 	public function addTextByDirection($text, $direction = self::Top, $fontSize = 16, $color = '#000', $fontFamily = 5) {
 		list($x, $y) = $this->getPointByDirection($direction);
-		return $this->text($text, $x, $y, $fontSize, $color, $fontFamily);
+		$this->instance()->text($text, new Font($fontFamily, $fontSize, $color), new Point($x, $y));
+        return $this;
 	}
 
     /**
@@ -128,11 +133,12 @@ class WaterMark extends Image {
      * @param string $color
      * @param int|string $fontFamily
      * @param int $angle 如果 $fontFamily 为 int，则不起作用
-     * @return array|bool
+     * @return static
      * @throws \Zodream\Infrastructure\Error\Exception
      */
 	public function addText($text, $x = 0, $y = 0, $fontSize = 16, $color = '#000', $fontFamily = 5, $angle = 0) {
-		return $this->text(...func_get_args());
+		$this->instance()->text($text, new Font($fontFamily, $fontSize, $color), new Point($x, $y));
+	    return $this;
 	}
 
     /**
@@ -140,7 +146,7 @@ class WaterMark extends Image {
      * @param $image
      * @param int $direction
      * @param int $opacity
-     * @return bool
+     * @return static
      */
 	public function addImageByDirection($image, $direction = self::Top, $opacity = 50) {
 		list($x, $y) = $this->getPointByDirection($direction);
@@ -153,15 +159,15 @@ class WaterMark extends Image {
 	 * @param int $x
 	 * @param int $y
 	 * @param int $opacity 透明度，对png图片不起作用
-	 * @return bool
+	 * @return static
 	 */
 	public function addImage($image, $x = 0, $y = 0, $opacity = 50) {
-		if (!$image instanceof Image) {
-			$image = new Image($image);
-		}
-		if ($image->getRealType() == 'png') {
-			return $this->copyFrom($image, 0, 0, $x, $y);
-		}
-		return $this->copyAndMergeFrom($image, $x, $y, $opacity);
+        if ($image instanceof Image) {
+            $image = $image->instance();
+        } elseif (!$image instanceof ImageAdapter) {
+            $image = ImageManager::create()->loadResource($image);
+        }
+        $this->instance()->paste($image, new Point($x, $y), $opacity);
+        return $this;
 	}
 }

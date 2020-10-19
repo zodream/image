@@ -1,8 +1,11 @@
 <?php
 namespace Zodream\Image\Node;
 
+use Zodream\Image\Adapters\ImageAdapter;
+use Zodream\Image\Base\Box;
+use Zodream\Image\Base\Point;
 use Zodream\Image\Image;
-use Zodream\Image\ImageStatic;
+use Zodream\Image\ImageManager;
 
 class ImgNode extends BaseNode {
 
@@ -12,7 +15,7 @@ class ImgNode extends BaseNode {
     protected $src;
 
     /**
-     * @var Image
+     * @var ImageAdapter
      */
     protected $image;
 
@@ -33,7 +36,7 @@ class ImgNode extends BaseNode {
 
     public function getImage() {
         if (empty($this->image)) {
-            $this->image = ImageStatic::make($this->src);
+            $this->image = ImageManager::create()->open($this->src);
         }
         return $this->image;
     }
@@ -93,9 +96,12 @@ class ImgNode extends BaseNode {
     }
 
     public function draw(Image $box = null) {
-        $box->copyFromWithResize($this->image, 0, 0,
-            $this->computed['x'], $this->computed['y'],
-            0, 0, $this->computed['width'], $this->computed['height']);
+        $img = $this->getImage();
+        if ($img->getWidth() != $this->computed['width'] || $img->getHeight() != $this->computed['height']) {
+            $img = clone $this->getImage();
+            $img->scale(new Box($this->computed['width'], $this->computed['height']));
+        }
+        $box->instance()->paste($img, new Point($this->computed['x'], $this->computed['y']));
     }
 
     public static function create($src, array $properties = []) {

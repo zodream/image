@@ -2,8 +2,13 @@
 namespace Zodream\Image;
 
 use BaconQrCode\Common\ErrorCorrectionLevel;
-use BaconQrCode\Encoder\Encoder;
-use BaconQrCode\Renderer\Image\Png;
+use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
+use Zodream\Image\Adapters\ImageAdapter;
+use Zodream\Image\Base\Box;
+use Zodream\Image\Base\Point;
 use Zxing\QrReader;
 
 /**
@@ -64,12 +69,13 @@ class QrCode extends Image {
      * @return $this
      */
 	public function encode($value) {
-        $renderer = new Png();
-        $renderer->setHeight($this->height);
-        $renderer->setWidth($this->width);
-        $qrCode = Encoder::encode($value, new ErrorCorrectionLevel($this->level), $this->encoding);
-        $content = $renderer->render($qrCode);
-        $this->image = imagecreatefromstring($content);
+        $renderer = new ImageRenderer(
+            new RendererStyle($this->width),
+            new ImagickImageBackEnd()
+        );
+        $writer = new Writer($renderer);
+        $content = $writer->writeString($value, $this->encoding, ErrorCorrectionLevel::forBits($this->level));
+        $this->instance()->load($content);
 		return $this;
 	}
 
@@ -79,22 +85,16 @@ class QrCode extends Image {
      * @return $this
      */
 	public function addLogo($logo) {
-		if (!$logo instanceof Image) {
-			$logo = new Image($logo);
-		}
-		$width = ($this->width - $logo->width) / 2;
+	    if ($logo instanceof Image) {
+	        $logo = $logo->instance();
+        } elseif (!$logo instanceof ImageAdapter) {
+	        $logo = ImageManager::create()->loadResource($logo);
+        }
+		$width = ($this->width - $logo->getWidth()) / 2;
 		$logoWidth = $this->width / 5;
-		$this->copyFromWithReSampling($logo,
-			$width,
-			$width,
-			0,
-			0,
-			$logo->width,
-			$logo->height,
-			$logoWidth,
-			$this->height * $logo->width / $logoWidth
-		);
-		$logo->close();
+		$logo->scale(new Box($logoWidth, $logoWidth));
+		$this->instance()->paste($logo, new Point($width,
+            $width));
 		return $this;
 	}
 
@@ -194,6 +194,6 @@ class QrCode extends Image {
      * @return string
      */
     public function decode() {
-        return (new QrReader($this->image, QrReader::SOURCE_TYPE_RESOURCE))->text();
+        return (new QrReader($this->instance()->getResource(), QrReader::SOURCE_TYPE_RESOURCE))->text();
     }
 }

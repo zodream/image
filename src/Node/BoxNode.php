@@ -1,8 +1,8 @@
 <?php
 namespace Zodream\Image\Node;
 
-use Zodream\Helpers\Str;
-use Zodream\Image\Canvas;
+use Zodream\Image\Base\Box;
+use Zodream\Image\Base\Point;
 use Zodream\Image\Image;
 
 class BoxNode extends BaseNode {
@@ -53,8 +53,8 @@ class BoxNode extends BaseNode {
                 'color' => '#000',
                 'font-size' => 16
             ]);
-            $box = new Canvas();
-            $box->create($this->computed['outerWidth'], $this->computed['outerHeight']);
+            $box = new Image();
+            $box->instance()->create(new Box($this->computed['outerWidth'], $this->computed['outerHeight']));
             if (!isset($this->computed['background'])) {
                 $this->computed['background'] = '#fff';
             }
@@ -79,13 +79,13 @@ class BoxNode extends BaseNode {
 
     protected function drawFill(Image $box, $color, $x, $y, $width, $height, $radius) {
         if ($this->isEmpty($radius)) {
-            $box->setBackground($color);
+            $box->instance()->fill($color);
             return;
         }
         for ($i = 0; $i < $width; $i ++) {
             for ($j = 0; $j < $height; $j ++) {
                 if ($this->isBoxInner($i, $j, $width, $height, $radius)) {
-                    $box->setColor($x + $i, $y + $j, $color);
+                    $box->instance()->dot(new Point($x + $i, $y + $j), $color);
                 }
             }
         }
@@ -98,11 +98,11 @@ class BoxNode extends BaseNode {
             return;
         }
         $image = $node->getImage();
-        $image->scale($width, $height);
+        $image->scale(new Box($width, $height));
         for ($i = 0; $i < $width; $i ++) {
             for ($j = 0; $j < $height; $j ++) {
                 if ($this->isBoxInner($i, $j, $width, $height, $radius)) {
-                    $box->setColor($x + $i, $y + $j, $image->getColor($i, $j));
+                    $box->instance()->dot(new Point($x + $i, $y + $j), $image->getColorAt(new Point($i, $j)));
                 }
             }
         }

@@ -1,6 +1,7 @@
 <?php
 namespace Zodream\Image;
 
+use Zodream\Image\Adapters\AbstractImage;
 use Zodream\Image\Adapters\Gd;
 use Zodream\Image\Adapters\Gmagick;
 use Zodream\Image\Adapters\ImageAdapter;
@@ -17,7 +18,7 @@ final class ImageManager {
 
     /**
      * @param string $driver
-     * @return ImageAdapter
+     * @return ImageAdapter|AbstractImage
      */
     public static function create(string $driver = '') {
         if (empty($driver)) {

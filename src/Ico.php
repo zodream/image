@@ -1,6 +1,10 @@
 <?php
 namespace Zodream\Image;
 
+use Zodream\Image\Base\Box;
+use Zodream\Image\Base\BoxInterface;
+use Zodream\Image\Base\Point;
+
 /**
  * Class Ico
  * @package Zodream\Image
@@ -26,7 +30,7 @@ class Ico extends Image {
      */
     public function saveAsSize($output, array $sizes = []) {
         if (empty($sizes)) {
-            $sizes = [$this->getSize()];
+            $sizes = [$this->instance()->getSize()];
         }
         $images = [];
         foreach ($sizes as $size) {
@@ -62,17 +66,14 @@ class Ico extends Image {
             list($width, $height) = $size;
         } elseif (is_string($size) && strpos($size, 'x') > 0) {
             list($width, $height) = explode('x', $size, 2);
+        } elseif ($size instanceof BoxInterface) {
+            $width = $size->getWidth();
+            $height = $size->getHeight();
         } else {
             $height = $width = intval($size);
         }
-        $new_im = imagecreatetruecolor($width, $height);
-        imagecolortransparent($new_im, imagecolorallocatealpha($new_im, 0, 0, 0, 127) );
-        imagealphablending($new_im, false);
-        imagesavealpha($new_im, true);
-        if (false === imagecopyresampled( $new_im, $this->image, 0, 0, 0, 0, $width, $height,
-                $this->width, $this->height ) ) {
-            return [];
-        }
+        $new_im = clone $this->instance();
+        $new_im->scale(new Box($width, $height));
 
         $pixel_data = array();
         $opacity_data = array();
@@ -80,7 +81,7 @@ class Ico extends Image {
 
         for ( $y = $height - 1; $y >= 0; $y-- ) {
             for ( $x = 0; $x < $width; $x++ ) {
-                $color = imagecolorat($new_im, $x, $y);
+                $color = $new_im->getColorAt(new Point($x, $y));
 
                 $alpha = ( $color & 0x7F000000 ) >> 24;
                 $alpha = ( 1 - ( $alpha / 127 ) ) * 255;

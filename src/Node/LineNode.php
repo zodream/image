@@ -1,6 +1,7 @@
 <?php
 namespace Zodream\Image\Node;
 
+use Zodream\Image\Base\Point;
 use Zodream\Image\Image;
 
 class LineNode extends BaseNode {
@@ -47,7 +48,8 @@ class LineNode extends BaseNode {
     public function draw(Image $box = null) {
         $points = $this->styles['points'];
         for ($i = count($points) - 1; $i > 0; $i --) {
-            $box->line($points[$i][0], $points[$i][1], $points[$i - 1][0], $points[$i - 1][1], $this->styles['color']);
+            $box->instance()->line(new Point($points[$i][0], $points[$i][1]),
+                new Point($points[$i - 1][0], $points[$i - 1][1]), $this->styles['color']);
         }
     }
 

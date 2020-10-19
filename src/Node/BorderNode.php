@@ -1,6 +1,7 @@
 <?php
 namespace Zodream\Image\Node;
 
+use Zodream\Image\Base\Point;
 use Zodream\Image\Image;
 
 class BorderNode extends BaseNode {
@@ -36,7 +37,7 @@ class BorderNode extends BaseNode {
         $startY = $this->computed['y'];
         $endX = $startX + $this->computed['width'];
         $endY = $startY + $this->computed['height'];
-        $color = $box->getColorWithRGB($this->computed['color']);
+        $color = $box->instance()->getColor($this->computed['color']);
         $radius = $this->computed['radius'];
         if ($radius[0] > 0) {
             // top-left
@@ -48,7 +49,7 @@ class BorderNode extends BaseNode {
         }
         // top
         NodeHelper::step(function ($x) use ($startY, $box, $color) {
-            $box->setColor($x, $startY, $color);
+            $box->instance()->dot(new Point($x, $startY), $color);
         }, $startX + $radius[0], $endX - $radius[1]);
         if ($radius[1] > 0) {
             // top-right
@@ -60,7 +61,7 @@ class BorderNode extends BaseNode {
         }
         // right
         NodeHelper::step(function ($y) use ($endX, $box, $color) {
-            $box->setColor($endX, $y, $color);
+            $box->instance()->dot(new Point($endX, $y), $color);
         }, $startY + $radius[1], $endY - $radius[2]);
         if ($radius[2] > 0) {
             // bottom-right
@@ -72,7 +73,7 @@ class BorderNode extends BaseNode {
         }
         // bottom
         NodeHelper::step(function ($x) use ($endY, $box, $color) {
-            $box->setColor($x, $endY, $color);
+            $box->instance()->dot(new Point($x, $endY), $color);
         }, $startX + $radius[3], $endX - $radius[2]);
         if ($radius[3] > 0) {
             // bottom-right
@@ -84,7 +85,7 @@ class BorderNode extends BaseNode {
         }
         // bottom
         NodeHelper::step(function ($y) use ($startX, $box, $color) {
-            $box->setColor($startX, $y, $color);
+            $box->instance()->dot(new Point($startX, $y), $color);
         }, $startY + $radius[0], $endY - $radius[3]);
     }
 
@@ -97,7 +98,7 @@ class BorderNode extends BaseNode {
             $y = $centerY +
                 ($endY > $centerY || $endY > $startY ? 1 : -1) *
                 sqrt(pow($radius, 2) - pow(abs($x - $centerX), 2));
-            $box->setColor($x, $y, $color);
+            $box->instance()->dot(new Point($x, $y), $color);
         }, $startX, $endX);
     }
 

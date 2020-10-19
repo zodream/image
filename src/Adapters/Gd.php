@@ -12,36 +12,7 @@ use Zodream\Image\Base\Point;
 use Zodream\Image\Base\PointInterface;
 use Zodream\Image\Colors;
 
-class Gd implements ImageAdapter {
-
-    const ALLOW_TYPES = array(
-        'jpeg' => array(
-            'jpg',
-            'jpeg',
-            'jpe',
-            'jpc',
-            'jpeg2000',
-            'jp2',
-            'jb2'
-        ),
-        'webp' => 'webp',
-        'png' => 'png',
-        'gif' => 'gif',
-        'wbmp' => 'wbmp',
-        'xbm' => 'xbm',
-        'gd' => 'gd',
-        'gd2' => 'gd2'
-    );
-
-    protected $file;
-
-    protected $width;
-
-    protected $height;
-
-    protected $type;
-
-    protected $realType;
+class Gd extends AbstractImage implements ImageAdapter {
 
     /**
      * @var resource
@@ -62,7 +33,6 @@ class Gd implements ImageAdapter {
         if (empty($color)) {
             $color = '#fff';
         }
-        $this->fill($color);
 
 //        $index = imagecolorallocatealpha($resource, $color->getRed(), $color->getGreen(), $color->getBlue(), round(127 * (100 - $color->getAlpha()) / 100));
 //
@@ -80,6 +50,8 @@ class Gd implements ImageAdapter {
         $this->resource = $resource;
         $this->height = $height;
         $this->width = $width;
+        $this->setRealType('jpeg');
+        $this->fill($color);
         return $this;
     }
 
@@ -94,7 +66,7 @@ class Gd implements ImageAdapter {
                 : $type;
             $this->setRealType($this->type);
             if (false !== $this->realType) {
-                $this->image = call_user_func('imagecreatefrom'.$this->realType, $file);
+                $this->resource = call_user_func('imagecreatefrom'.$this->realType, $file);
             }
         }
         return $this;
@@ -237,7 +209,7 @@ class Gd implements ImageAdapter {
     public function fill($fill) {
         $size = $this->getSize();
 
-        if (is_string($fill)) {
+        if (is_string($fill) || is_array($fill)) {
             imagefilledrectangle(
                 $this->resource,
                 0,
@@ -524,9 +496,9 @@ class Gd implements ImageAdapter {
             $string = $font->wrapText($string, $width, $angle);
         }
 
-        if (false === imagealphablending($this->resource, true)) {
-            throw new RuntimeException('Font mask operation failed');
-        }
+//        if (false === imagealphablending($this->resource, true)) {
+//            throw new RuntimeException('Font mask operation failed');
+//        }
 
         if ($fontfile && DIRECTORY_SEPARATOR === '\\') {
             // On Windows imagefttext() throws a "Could not find/open font" error if $fontfile is not an absolute path.
@@ -535,7 +507,13 @@ class Gd implements ImageAdapter {
                 $fontfile = $fontfileRealpath;
             }
         }
-        if (false === imagefttext($this->resource, $fontsize, $angle, $x, $y, $this->getColor($font->getColor()), $fontfile, $string)) {
+        if (is_numeric($fontfile)) {
+            $y -= $fontsize;
+            if (false === imagestring($this->resource, intval($fontfile), $x, $y, $string, $this->getColor($font->getColor()))) {
+                imagealphablending($this->resource, false);
+                throw new RuntimeException('Font mask operation failed');
+            }
+        } else if (false === imagefttext($this->resource, $fontsize, $angle, $x, $y, $this->getColor($font->getColor()), $fontfile, $string)) {
             imagealphablending($this->resource, false);
             throw new RuntimeException('Font mask operation failed');
         }
@@ -552,6 +530,14 @@ class Gd implements ImageAdapter {
         return new Box(abs($box[4] - $box[0]), abs($box[5] - $box[1]));
     }
 
+    /**
+     * 将某个颜色定义为透明色
+     * @param $color
+     * @return int
+     */
+    public function transparent($color) {
+        return imagecolortransparent($this->image, $this->getColor($color));
+    }
 
     public function gamma($correction)
     {
@@ -654,10 +640,6 @@ class Gd implements ImageAdapter {
         //return $this->palette->color(array($info['red'], $info['green'], $info['blue']), max(min(100 - (int) round($info['alpha'] / 127 * 100), 100), 0));
     }
 
-    public function save() {
-        return $this->saveAs($this->file);
-    }
-
     /**
      * 另存为
      * @param string|null $output 如果为null 表示输出
@@ -670,44 +652,6 @@ class Gd implements ImageAdapter {
             $output = (string)$output;
         }
         return call_user_func('image'.$this->realType, $this->resource, $output);
-    }
-
-    public function setEmptyImage() {
-        $this->resource = null;
-        return $this;
-    }
-
-    public function getHeight() {
-        return $this->height;
-    }
-
-    public function getWidth() {
-        return $this->width;
-    }
-
-    public function getSize() {
-        return new Box($this->getWidth(), $this->getHeight());
-    }
-
-    public function getRealType() {
-        return $this->realType;
-    }
-
-    /**
-     * 设置真实类型
-     * @param $type
-     */
-    public function setRealType($type) {
-        if (empty($type)) {
-            return;
-        }
-        foreach (self::ALLOW_TYPES as $key => $item) {
-            if ((!is_array($item) && $item == $type)
-                || (is_array($item) && in_array($type, $item))) {
-                $this->realType = $type;
-                return;
-            }
-        }
     }
 
     public function close() {
