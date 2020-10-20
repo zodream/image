@@ -79,10 +79,6 @@ class Image {
      * @return string
      */
     public function toBase64() {
-        ob_start ();
-        $this->saveAs();
-        $data = ob_get_contents();
-        ob_end_clean();
-        return 'data:image/'.$this->instance()->getRealType().';base64,'.base64_encode($data);
+        return $this->instance()->toBase64();
     }
 }

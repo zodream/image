@@ -106,4 +106,12 @@ abstract class AbstractImage implements ImageAdapter {
     public function save() {
         return $this->saveAs($this->file);
     }
+
+    public function toBase64() {
+        ob_start ();
+        $this->saveAs();
+        $data = ob_get_contents();
+        ob_end_clean();
+        return 'data:image/'.$this->getRealType().';base64,'.base64_encode($data);
+    }
 }

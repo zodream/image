@@ -916,6 +916,10 @@ class Imagick extends AbstractImage implements ImageAdapter {
         return $this->resource->writeImage((string)$output);
     }
 
+    public function toBase64() {
+        return 'data:image/'.$this->getRealType().';base64,'.base64_encode($this->resource->getImageBlob());
+    }
+
     public function fill($color)
     {
         $this->resource->setImageBackgroundColor($this->converterToColor($color));
