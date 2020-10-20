@@ -2,6 +2,7 @@
 namespace Zodream\Image\Adapters;
 
 use InvalidArgumentException;
+use OutOfBoundsException;
 use RuntimeException;
 use Zodream\Image\Base\Box;
 use Zodream\Image\Base\BoxInterface;
@@ -9,6 +10,8 @@ use Zodream\Image\Base\FontInterface;
 use Zodream\Image\Base\Matrix;
 use Zodream\Image\Base\Point;
 use Zodream\Image\Base\PointInterface;
+use Zodream\Image\Colors;
+use Zodream\Image\ImageManager;
 
 class Imagick extends AbstractImage implements ImageAdapter {
 
@@ -20,71 +23,49 @@ class Imagick extends AbstractImage implements ImageAdapter {
     /**
      * {@inheritdoc}
      *
-     * @see \Imagine\Image\ImagineInterface::open()
      */
     public function open($path)
     {
-        $loader = $path instanceof LoaderInterface ? $path : $this->getClassFactory()->createFileLoader($path);
-        $path = $loader->getPath();
-
         try {
-            if ($loader->isLocalFile()) {
-                if (DIRECTORY_SEPARATOR === '\\' && PHP_INT_SIZE === 8 && PHP_VERSION_ID >= 70100 && PHP_VERSION_ID < 70200) {
-                    $imagick = new \Imagick();
-                    // PHP 7.1 64 bit on Windows: don't pass the file name to the constructor: it may break PHP - see https://github.com/mkoppanen/imagick/issues/252
-                    $imagick->readImageBlob($loader->getData(), $path);
-                } else {
-                    $imagick = new \Imagick($loader->getPath());
-                }
-            } else {
-                $imagick = new \Imagick();
-                $imagick->readImageBlob($loader->getData());
-            }
-            $image = $this->getClassFactory()->createImage(ClassFactoryInterface::HANDLE_IMAGICK, $imagick, $this->createPalette($imagick), $this->getMetadataReader()->readFile($loader));
+            $this->resource = new \Imagick((string)$path);
+            $this->refreshMeta();
         } catch (\ImagickException $e) {
             throw new RuntimeException(sprintf('Unable to open image %s', $path), $e->getCode(), $e);
         }
 
-        return $image;
+        return $this;
     }
 
     /**
      * {@inheritdoc}
      *
-     * @see \Imagine\Image\ImagineInterface::create()
      */
-    public function create(BoxInterface $size, ColorInterface $color = null)
+    public function create(BoxInterface $size, $color = null)
     {
         $width = $size->getWidth();
         $height = $size->getHeight();
 
-        $palette = null !== $color ? $color->getPalette() : new RGB();
-        $color = null !== $color ? $color : $palette->color('fff');
+
+        if (empty($color)) {
+            $color = '#fff';
+        }
 
         try {
-            $pixel = new \ImagickPixel((string) $color);
-            $pixel->setColorValue(\Imagick::COLOR_ALPHA, $color->getAlpha() / 100);
 
+            $pixel = $this->converterToColor($color);
             $imagick = new \Imagick();
             $imagick->newImage($width, $height, $pixel);
             $imagick->setImageMatte(true);
+
             $imagick->setImageBackgroundColor($pixel);
 
-            if (version_compare('6.3.1', $this->getVersion($imagick)) < 0) {
-                // setImageOpacity was replaced with setImageAlpha in php-imagick v3.4.3
-                if (method_exists($imagick, 'setImageAlpha')) {
-                    $imagick->setImageAlpha($pixel->getColorValue(\Imagick::COLOR_ALPHA));
-                } else {
-                    ErrorHandling::ignoring(E_DEPRECATED, function () use ($imagick, $pixel) {
-                        $imagick->setImageOpacity($pixel->getColorValue(\Imagick::COLOR_ALPHA));
-                    });
-                }
-            }
+            $imagick->setImageAlpha($pixel->getColorValue(\Imagick::COLOR_ALPHA));
 
             $pixel->clear();
             $pixel->destroy();
-
-            return $this->getClassFactory()->createImage(ClassFactoryInterface::HANDLE_IMAGICK, $imagick, $palette, new MetadataBag());
+            $this->resource = $imagick;
+            $this->refreshMeta();
+            return $this;
         } catch (\ImagickException $e) {
             throw new RuntimeException('Could not create empty image', $e->getCode(), $e);
         }
@@ -92,8 +73,6 @@ class Imagick extends AbstractImage implements ImageAdapter {
 
     /**
      * {@inheritdoc}
-     *
-     * @see \Imagine\Image\ImagineInterface::load()
      */
     public function load($string)
     {
@@ -102,8 +81,9 @@ class Imagick extends AbstractImage implements ImageAdapter {
 
             $imagick->readImageBlob($string);
             $imagick->setImageMatte(true);
-
-            return $this->getClassFactory()->createImage(ClassFactoryInterface::HANDLE_IMAGICK, $imagick, $this->createPalette($imagick), $this->getMetadataReader()->readData($string));
+            $this->resource = $imagick;
+            $this->refreshMeta();
+            return $this;
         } catch (\ImagickException $e) {
             throw new RuntimeException('Could not load image from string', $e->getCode(), $e);
         }
@@ -124,11 +104,21 @@ class Imagick extends AbstractImage implements ImageAdapter {
         try {
             $imagick = new \Imagick();
             $imagick->readImageBlob($content);
+            $this->resource = $imagick;
+            $this->refreshMeta();
         } catch (\ImagickException $e) {
             throw new RuntimeException('Could not read image from resource', $e->getCode(), $e);
         }
 
-        return $this->getClassFactory()->createImage(ClassFactoryInterface::HANDLE_IMAGICK, $imagick, $this->createPalette($imagick), $this->getMetadataReader()->readData($content, $resource));
+        return $this;
+    }
+
+    protected function refreshMeta() {
+        $this->width = $this->resource->getImageWidth();
+        $this->height = $this->resource->getImageHeight();
+        if (empty($this->realType)) {
+            $this->setRealType('png');
+        }
     }
 
     /**
@@ -147,7 +137,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
         $height = $size->getHeight();
 
         try {
-            $pixel = $this->getColor($color);
+            $pixel = $this->converterToColor($color);
             $arc = new \ImagickDraw();
 
             $arc->setStrokeColor($pixel);
@@ -185,7 +175,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
         $height = $size->getHeight();
 
         try {
-            $pixel = $this->getColor($color);
+            $pixel = $this->converterToColor($color);
             $chord = new \ImagickDraw();
 
             $chord->setStrokeColor($pixel);
@@ -247,7 +237,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
         $width = $size->getWidth();
         $height = $size->getHeight();
         try {
-            $pixel = $this->getColor($color);
+            $pixel = $this->converterToColor($color);
             $ellipse = new \ImagickDraw();
 
             $ellipse->setStrokeColor($pixel);
@@ -294,7 +284,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
             return $this;
         }
         try {
-            $pixel = $this->getColor($color);
+            $pixel = $this->converterToColor($color);
             $line = new \ImagickDraw();
 
             $line->setStrokeColor($pixel);
@@ -370,7 +360,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
         $y = $position->getY();
 
         try {
-            $pixel = $this->getColor($color);
+            $pixel = $this->converterToColor($color);
             $point = new \ImagickDraw();
 
             $point->setFillColor($pixel);
@@ -406,7 +396,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
         $maxY = max($leftTop->getY(), $rightBottom->getY());
 
         try {
-            $pixel = $this->getColor($color);
+            $pixel = $this->converterToColor($color);
             $rectangle = new \ImagickDraw();
             $rectangle->setStrokeColor($pixel);
             $rectangle->setStrokeWidth($thickness);
@@ -451,7 +441,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
         }, $coordinates);
 
         try {
-            $pixel = $this->getColor($color);
+            $pixel = $this->converterToColor($color);
             $polygon = new \ImagickDraw();
 
             $polygon->setStrokeColor($pixel);
@@ -485,7 +475,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
     public function text($string, FontInterface $font, PointInterface $position, $angle = 0, $width = null)
     {
         try {
-            $pixel = $this->getColor($font->getColor());
+            $pixel = $this->converterToColor($font->getColor());
             $text = new \ImagickDraw();
 
             $text->setFont($font->getFile());
@@ -523,8 +513,8 @@ class Imagick extends AbstractImage implements ImageAdapter {
             $ydiff = 0 - min($y1, $y2);
 
             $this->resource->annotateImage(
-                $text, $position->getX() + $x1 + $xdiff,
-                $position->getY() + $y2 + $ydiff, $angle, $string
+                $text, $position->getX(), //+ $x1 + $xdiff,
+                $position->getY()/* + $y2 + $ydiff*/, $angle, $string
             );
 
             $pixel->clear();
@@ -759,6 +749,11 @@ class Imagick extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
+    public function pastePart(ImageAdapter $src, PointInterface $srcStart, BoxInterface $srcBox, PointInterface $start, BoxInterface $box = null, $alpha = 100)
+    {
+        // TODO: Implement pastePart() method.
+    }
+
     /**
      * {@inheritdoc}
      *
@@ -793,7 +788,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
         }
 
         try {
-            $pixel = $this->getColor($background);
+            $pixel = $this->converterToColor($background);
 
             $this->resource->rotateimage($pixel, $angle);
 
@@ -835,6 +830,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
     {
         if ($this->resource instanceof \Imagick) {
             $this->resource = $this->cloneImagick();
+            $this->refreshMeta();
         }
     }
 
@@ -854,11 +850,19 @@ class Imagick extends AbstractImage implements ImageAdapter {
      *
      * @return string
      */
-    private function getColor($color)
+    public function converterToColor($color)
     {
-        $pixel = new \ImagickPixel((string) $color);
-        $pixel->setColorValue(\Imagick::COLOR_ALPHA, $color->getAlpha() / 100);
-
+        if ($color instanceof \ImagickPixel) {
+            return $color;
+        }
+        $args = Colors::converter($color);
+        if (!is_array($args)) {
+            $temp = ImageManager::create('gd')->create(new Box(10, 10));
+            $args = $temp->converterFromColor($color);
+            unset($args);
+        }
+        $pixel = new \ImagickPixel(sprintf('rgb(%d,%d,%d)', $args[0], $args[1], $args[2]));
+        $pixel->setColorValue(\Imagick::COLOR_ALPHA, $args[3]);
         return $pixel;
     }
 
@@ -874,38 +878,76 @@ class Imagick extends AbstractImage implements ImageAdapter {
         return $this->resource->clone();
     }
 
-    public function getHeight()
-    {
-        // TODO: Implement getHeight() method.
-    }
-
-    public function getWidth()
-    {
-        // TODO: Implement getWidth() method.
-    }
-
     public function scale(BoxInterface $box)
     {
-        // TODO: Implement scale() method.
+        $this->resource->scaleImage($box->getWidth(), $box->getHeight());
+        return $this;
     }
 
     public function getColorAt(PointInterface $point)
     {
-        // TODO: Implement getColorAt() method.
+        $areaIterator = $this->resource->getPixelRegionIterator($point->getX(), $point->getY(), 1, 1);
+        foreach ($areaIterator as $rowIterator) {
+            foreach ($rowIterator as $pixel) {
+                $color = $pixel->getColor();
+                return [$color['r'], $color['g'], $color['b'], $color['a']];
+            }
+        }
+        return [0, 0, 0, 0];
     }
 
     public function crop(PointInterface $start, BoxInterface $size)
     {
-        // TODO: Implement crop() method.
+        if (!$start->in($this->getSize())) {
+            throw new OutOfBoundsException('Crop coordinates must start at minimum 0, 0 position from top left corner, crop height and width must be positive integers and must not exceed the current image borders');
+        }
+        $this->resource->cropImage($size->getWidth(), $size->getHeight(), $start->getX(), $start->getX());
+        return $this;
     }
 
-    public function saveAs($output = null, $type = '')
+    public function saveAs($output = null, $type = 'jpeg')
     {
-        // TODO: Implement saveAs() method.
+        $this->setRealType($type);
+        $this->resource->setImageFormat($this->getRealType());
+        if (is_null($output)) {
+            echo $this->resource->getImageBlob();
+            return true;
+        }
+        return $this->resource->writeImage((string)$output);
     }
 
-    public function fill($fill)
+    public function fill($color)
     {
-        // TODO: Implement fill() method.
+        $this->resource->setImageBackgroundColor($this->converterToColor($color));
+        return $this;
+    }
+
+    public function transparent($color)
+    {
+        $this->setRealType('png');
+        $this->resource->setimageformat('png');
+        $this->resource->transparentPaintImage(
+            $this->converterToColor($color), 0, 1, false
+        );
+        $this->resource->despeckleimage();
+        return $this;
+    }
+
+    public function thumbnail(BoxInterface $box)
+    {
+        $this->resource->thumbnailImage($box->getWidth(), $box->getHeight());
+        return $this;
+    }
+
+    public function converterFromColor($color)
+    {
+        if (is_array($color)) {
+            return $color;
+        }
+        if (!$color instanceof \ImagickPixel) {
+            $color = new \ImagickPixel((string)$color);
+        }
+        $res = $color->getColor();
+        return [$res['r'], $res['g'], $res['b'], $res['a']];
     }
 }

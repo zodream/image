@@ -41,27 +41,10 @@ class ImgNode extends BaseNode {
         return $this->image;
     }
 
-    public function refresh(array $properties = []) {
-        $this->getImage();
-        $this->computed = [
-            'x' => $properties['x'],
-            'y' => $properties['y'],
-            'padding' => NodeHelper::padding($this->styles),
-            'margin' => NodeHelper::padding($this->styles, 'margin'),
-        ];
-        $this->computed['width'] = $this->getWidth($properties);
-        $this->computed['height'] = $this->getHeight($properties);
-        if (isset($this->styles['fixed'])) {
-            $this->computed['x'] = $this->styles['x'];
-            $this->computed['y'] = $this->styles['y'];
-        }
-        if (isset($this->styles['center'])) {
-            $this->computed['x'] = ($properties['outerWidth'] - $this->styles['width']) / 2;
-        }
-        $this->computed['outerHeight'] = $this->computed['height']
-            + $this->computed['padding'][0] + $this->computed['padding'][2]
-            + $this->computed['margin'][0] + $this->computed['margin'][2];
-        return isset($this->styles['fixed']) ? 0 : $this->outerHeight();
+    protected function refreshSize(array $styles, $parentInnerWidth, array $parentStyles) {
+        $styles['width'] = $this->getWidth($parentStyles);
+        $styles['height'] = $this->getHeight($parentStyles);
+        return parent::refreshSize($styles, $parentInnerWidth, $parentStyles);
     }
 
     public function outerHeight() {
@@ -92,7 +75,7 @@ class ImgNode extends BaseNode {
         if (!empty($width)) {
             return $width;
         }
-        return $this->image->getHeight();
+        return $this->getImage()->getHeight();
     }
 
     public function draw(Image $box = null) {

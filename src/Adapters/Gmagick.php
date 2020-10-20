@@ -888,7 +888,7 @@ class Gmagick extends AbstractImage implements ImageAdapter {
      *
      * @return \GmagickPixel
      */
-    private function getColor($color)
+    public function converterToColor($color)
     {
         if (!$color->isOpaque()) {
             throw new InvalidArgumentException('Gmagick doesn\'t support transparency');
@@ -935,5 +935,25 @@ class Gmagick extends AbstractImage implements ImageAdapter {
     public function fill($fill)
     {
         // TODO: Implement fill() method.
+    }
+
+    public function pastePart(ImageAdapter $src, PointInterface $srcStart, BoxInterface $srcBox, PointInterface $start, BoxInterface $box = null, $alpha = 100)
+    {
+        // TODO: Implement pastePart() method.
+    }
+
+    public function transparent($color)
+    {
+        // TODO: Implement transparent() method.
+    }
+
+    public function converterFromColor($color)
+    {
+        // TODO: Implement converterFromColor() method.
+    }
+
+    public function thumbnail(BoxInterface $box)
+    {
+        // TODO: Implement thumbnail() method.
     }
 }

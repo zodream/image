@@ -24,9 +24,14 @@ class BorderNode extends BaseNode {
         }
         if (!isset($styles['width']) || !isset($styles['height'])) {
             $this->content->style('width', 'auto');
-            $this->content->refresh($parentStyles);
+            $this->content->refresh(array_merge($parentStyles, [
+                'x' => $styles['x'] + $styles['padding'][3],
+                'y' => $styles['y'] + $styles['padding'][0],
+            ]));
             $styles['width'] = isset($styles['width'])
                 ? $styles['width'] : $this->content->computedStyle('outerWidth');
+            $styles['height'] = isset($styles['height'])
+                ? $styles['height'] : $this->content->computedStyle('outerHeight');
         }
         $styles['radius'] = NodeHelper::padding($styles, 'radius');
         return parent::refreshSize($styles, $parentInnerWidth, $parentStyles);
@@ -37,69 +42,46 @@ class BorderNode extends BaseNode {
         $startY = $this->computed['y'];
         $endX = $startX + $this->computed['width'];
         $endY = $startY + $this->computed['height'];
-        $color = $box->instance()->getColor($this->computed['color']);
+        $color = $box->instance()->converterToColor($this->computed['color']);
         $radius = $this->computed['radius'];
-        if ($radius[0] > 0) {
-            // top-left
-            $this->radiusLine($box, $color,
-                $startX + $radius[0],
-                $startY + $radius[0],
-                $startX, $startX + $radius[0],
-                $startX + $radius[0], $startY, $radius[0]);
-        }
+        $each = function ($radius, $cb) {
+            if ($radius < 1) {
+                return;
+            }
+            for ($i = 1; $i < $radius; $i ++) {
+                $j = $radius - sqrt(pow($radius, 2) - pow(abs($radius - $i), 2));
+                $cb($i, intval($j));
+            }
+        };
+        // top-left
+        $each($radius[0], function ($i, $j) use ($box, $startX, $startY, $color) {
+            $box->instance()->dot(new Point($startX + $i, $startY + $j), $color);
+        });
         // top
-        NodeHelper::step(function ($x) use ($startY, $box, $color) {
-            $box->instance()->dot(new Point($x, $startY), $color);
-        }, $startX + $radius[0], $endX - $radius[1]);
-        if ($radius[1] > 0) {
-            // top-right
-            $this->radiusLine($box, $color,
-                $endX - $radius[1],
-                $startY + $radius[1],
-                $endX - $radius[1], $endY,
-                $endX, $startY + $radius[1], $radius[1]);
-        }
+        $box->instance()->line(new Point($startX + $radius[0], $startY),
+            new Point($endX - $radius[1], $startY), $color);
+        // top-right
+        $each($radius[1], function ($i, $j) use ($box, $endX, $startY, $color) {
+            $box->instance()->dot(new Point($endX - $i, $startY + $j), $color);
+        });
         // right
-        NodeHelper::step(function ($y) use ($endX, $box, $color) {
-            $box->instance()->dot(new Point($endX, $y), $color);
-        }, $startY + $radius[1], $endY - $radius[2]);
-        if ($radius[2] > 0) {
-            // bottom-right
-            $this->radiusLine($box, $color,
-                $endX - $radius[2],
-                $endY - $radius[2],
-                $endX, $endY - $radius[2],
-                $endX - $radius[2], $endY, $radius[2]);
-        }
+        $box->instance()->line(new Point($endX, $startY + $radius[1]),
+            new Point($endX, $endY - $radius[2]), $color);
+        // bottom-right
+        $each($radius[2], function ($i, $j) use ($box, $endX, $endY, $color) {
+            $box->instance()->dot(new Point($endX - $i, $endY - $j), $color);
+        });
         // bottom
-        NodeHelper::step(function ($x) use ($endY, $box, $color) {
-            $box->instance()->dot(new Point($x, $endY), $color);
-        }, $startX + $radius[3], $endX - $radius[2]);
-        if ($radius[3] > 0) {
-            // bottom-right
-            $this->radiusLine($box, $color,
-                $startX + $radius[3],
-                $endY - $radius[3],
-                $startX + $radius[3], $endY,
-                $startX, $endY - $radius[3], $radius[3]);
-        }
-        // bottom
-        NodeHelper::step(function ($y) use ($startX, $box, $color) {
-            $box->instance()->dot(new Point($startX, $y), $color);
-        }, $startY + $radius[0], $endY - $radius[3]);
-    }
-
-    public function radiusLine(Image $box,
-                               $color,
-                               $centerX,
-                               $centerY,
-                               $startX, $startY, $endX, $endY, $radius) {
-        NodeHelper::step(function ($x) use ($box, $color, $centerX, $centerY, $startY, $endY, $radius) {
-            $y = $centerY +
-                ($endY > $centerY || $endY > $startY ? 1 : -1) *
-                sqrt(pow($radius, 2) - pow(abs($x - $centerX), 2));
-            $box->instance()->dot(new Point($x, $y), $color);
-        }, $startX, $endX);
+        $box->instance()->line(new Point($endX - $radius[2], $endY),
+            new Point($startX + $radius[3], $endY), $color);
+        // bottom-left
+        $each($radius[3], function ($i, $j) use ($box, $startX, $endY, $color) {
+            $box->instance()->dot(new Point($startX + $i, $endY - $j), $color);
+        });
+        // left
+        $box->instance()->line(new Point($startX, $endY - $radius[3]),
+            new Point($startX, $startY + $radius[0]), $color);
+        $this->content->draw($box);
     }
 
     public static function create($content, array $properties = []) {

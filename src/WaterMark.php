@@ -134,7 +134,6 @@ class WaterMark extends Image {
      * @param int|string $fontFamily
      * @param int $angle 如果 $fontFamily 为 int，则不起作用
      * @return static
-     * @throws \Zodream\Infrastructure\Error\Exception
      */
 	public function addText($text, $x = 0, $y = 0, $fontSize = 16, $color = '#000', $fontFamily = 5, $angle = 0) {
 		$this->instance()->text($text, new Font($fontFamily, $fontSize, $color), new Point($x, $y));

@@ -71,8 +71,8 @@ class TextNode extends BaseNode {
         if (isset($styles['width']) && $styles['width'] === 'auto') {
             $styles['width'] = $styles['contentWidth'] + $styles['padding'][1] + $styles['padding'][3];
         }
-        $styles['height'] = count($styles['lines']) * ($styles['font-size'] + $styles['lineSpace']);
-
+        $styles['height'] = count($styles['lines'])
+            * ($styles['font-size'] + $styles['lineSpace']) + $styles['padding'][0] + $styles['padding'][2];
         return parent::refreshSize($styles, $parentInnerWidth, $parentStyles);
     }
 

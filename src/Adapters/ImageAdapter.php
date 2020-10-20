@@ -190,6 +190,11 @@ interface ImageAdapter {
      */
     const FILTER_SINC = 'sinc';
 
+    /**
+     * @param BoxInterface $size
+     * @param null $color
+     * @return static
+     */
     public function create(BoxInterface $size, $color = null);
 
     public function open($path);
@@ -219,7 +224,37 @@ interface ImageAdapter {
 
     public function rotate($angle, $background = null);
 
+    /**
+     * 把一张图片放在什么位置上
+     * @param ImageAdapter $image 要放的图片
+     * @param PointInterface $start 放在那个位置
+     * @param int $alpha 透明度
+     * @return static
+     */
     public function paste(ImageAdapter $image, PointInterface  $start, $alpha = 100);
+
+    /**
+     * 截取一部分图片放在什么位置
+     * @param ImageAdapter $src 源图
+     * @param PointInterface $srcStart 源图截取的位置
+     * @param BoxInterface $srcBox 源图截取的大小
+     * @param PointInterface $start 放在什么位置
+     * @param BoxInterface|null $box 是否放大
+     * @param int $alpha
+     * @return static
+     */
+    public function pastePart(ImageAdapter $src,
+                              PointInterface $srcStart,
+                              BoxInterface $srcBox,
+                              PointInterface $start,
+                              BoxInterface $box = null, $alpha = 100);
+
+    /**
+     * 生成缩略图
+     * @param BoxInterface $box
+     * @return static
+     */
+    public function thumbnail(BoxInterface $box);
 
     public function save();
 
@@ -288,5 +323,17 @@ interface ImageAdapter {
 
     public function convolve(Matrix $matrix);
 
-    public function getColor($color);
+    /**
+     * 转化成可接受的颜色
+     * @param $color
+     * @return mixed
+     */
+    public function converterToColor($color);
+
+    /**
+     * 把颜色转成RGBA格式
+     * @param $color
+     * @return mixed
+     */
+    public function converterFromColor($color);
 }

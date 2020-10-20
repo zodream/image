@@ -13,7 +13,7 @@ class Image {
 	/**
 	 * @var ImageAdapter|AbstractImage
 	 */
-	public $resource;
+	private $resource;
 
     public function instance() {
         if ($this->resource) {

@@ -154,10 +154,10 @@ class Colors {
         if (func_num_args() == 1 && is_int($color)) {
             return $color;
         }
-        if (func_num_args() == 3) {
+        if (func_num_args() >= 3) {
             return func_num_args();
         }
-        if (is_array($color) && count($color) === 3) {
+        if (is_array($color) && count($color) >= 3) {
             return $color;
         }
         if (is_string($color) && substr($color, 0, 1) === '#') {
@@ -165,7 +165,9 @@ class Colors {
         }
         $name = Str::studly((string)$color);
         if (isset(self::$maps[$name])) {
-            return explode(',', self::$maps[$name], 3);
+            $args = explode(',', self::$maps[$name], 3);
+            $args[] = 1;
+            return $args;
         }
         throw new Exception(
             __('{color} IS ERROR!', [
@@ -190,7 +192,8 @@ class Colors {
         return array(
             hexdec($red),
             hexdec($green),
-            hexdec($blue)
+            hexdec($blue),
+            1,
         );
     }
 }

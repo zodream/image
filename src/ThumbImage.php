@@ -28,8 +28,8 @@ class ThumbImage extends Image {
             $thumbWidth *=  $rate;
             $thumbHeight *= $rate;
 		}
-        $thumb = clone $this->instance();
-		$thumb->scale(new Box($width, $height));
+        $thumb = $this->instance();
+		$thumb->thumbnail(new Box($width, $height));
 		$thumb->saveAs($output);
 		return $output;
 	}

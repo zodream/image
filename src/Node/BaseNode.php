@@ -117,7 +117,11 @@ abstract class BaseNode {
         }
         $styles = $this->refreshPosition($styles, $parentStyles);
         $parentInnerWidth = isset($parentStyles['innerWidth']) ? $parentStyles['innerWidth'] : $styles['width'];
-        $this->computed = $this->refreshSize($styles, $parentInnerWidth, $parentStyles);
+        $styles = $this->refreshSize($styles, $parentInnerWidth, $parentStyles);
+        if (isset($styles['center'])) {
+            $styles['x'] = ($parentStyles['outerWidth'] - $styles['width']) / 2;
+        }
+        $this->computed = $styles;
     }
 
     protected function refreshPosition(array $styles, array $parentStyles) {
@@ -129,7 +133,8 @@ abstract class BaseNode {
                 (!isset($styles['position']) || $styles['position'] !== 'fixed'
                     || $styles['position'] !== 'absolute' ? $parentStyles['x'] : 0) + $styles['margin'][1];
         } elseif (isset($styles['margin-left'])) {
-            $styles['x'] = (isset($parentStyles['brother']) ? $parentStyles['brother']->getRight() : 0) + $styles['margin'][1];
+            $styles['x'] = (isset($parentStyles['brother']) ?
+                    $parentStyles['brother']->getRight() : 0) + $styles['margin'][3];
             $styles['y'] = (isset($parentStyles['brother']) ? $parentStyles['brother']->getTop() : 0) + $styles['margin'][0];
             $styles['position'] = isset($styles['position']) ? $styles['position'] : 'absolute';
         } else {

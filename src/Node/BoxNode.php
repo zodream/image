@@ -1,9 +1,11 @@
 <?php
 namespace Zodream\Image\Node;
 
+use Zodream\Image\Adapters\ImageAdapter;
 use Zodream\Image\Base\Box;
 use Zodream\Image\Base\Point;
 use Zodream\Image\Image;
+use Zodream\Image\ImageManager;
 
 class BoxNode extends BaseNode {
 
@@ -29,16 +31,20 @@ class BoxNode extends BaseNode {
             'x' => $styles['x'] + $styles['padding'][3],
             'y' => $styles['y'] + $styles['padding'][0],
         ]);
+        $oldY = $parentStyles['y'];
+        $maxY = $oldY;
         foreach ($this->children as $node) {
             $node->refresh($parentStyles);
             $parentStyles['y'] += $node->placeholderHeight();
             $parentStyles['brother'] = $node;
+            $maxY = max($maxY, $node->getBottom());
         }
         if (!isset($this->styles['height'])) {
-            $styles['outerHeight'] = $parentStyles['y'] + $styles['margin'][2]
-                + $styles['padding'][2];
-            $styles['height'] = $parentStyles['y'] + $styles['padding'][2] - $styles['margin'][0];
-            $styles['innerHeight'] = $parentStyles['y'] - $styles['margin'][0] - $styles['padding'][0];
+            $maxY -= $oldY;
+            $styles['innerHeight'] = $maxY;
+            $styles['height'] = $maxY + $styles['padding'][2] + $styles['padding'][3];
+            $styles['outerHeight'] = $styles['height'] + $styles['margin'][2]
+                + $styles['margin'][0];
         } else {
             $styles['outerHeight'] = $this->styles['height'] + $styles['margin'][0] + $styles['margin'][2];
             $styles['innerHeight'] = $this->styles['height'] - $styles['padding'][0] - $styles['padding'][2];
@@ -82,13 +88,14 @@ class BoxNode extends BaseNode {
             $box->instance()->fill($color);
             return;
         }
-        for ($i = 0; $i < $width; $i ++) {
-            for ($j = 0; $j < $height; $j ++) {
-                if ($this->isBoxInner($i, $j, $width, $height, $radius)) {
-                    $box->instance()->dot(new Point($x + $i, $y + $j), $color);
-                }
-            }
-        }
+        $img = ImageManager::create()
+            ->create(new Box($width, $height), $color);
+        $bg = $img->converterFromColor($img->converterToColor($color));
+        $tempColor = [255 - $bg[0], 255 - $bg[1], 255 - $bg[2], 1];
+        $this->setColorOutBox($img, $tempColor, $radius);
+        $img->transparent($tempColor);
+        $box->instance()->paste($img, new Point($x, $y));
+        unset($img);
     }
 
     protected function drawBackgroundImage(Image $box, ImgNode $node, $x, $y, $width, $height, $radius) {
@@ -97,15 +104,44 @@ class BoxNode extends BaseNode {
             $node->draw($box);
             return;
         }
-        $image = $node->getImage();
+        $image = clone $node->getImage();
         $image->scale(new Box($width, $height));
-        for ($i = 0; $i < $width; $i ++) {
-            for ($j = 0; $j < $height; $j ++) {
-                if ($this->isBoxInner($i, $j, $width, $height, $radius)) {
-                    $box->instance()->dot(new Point($x + $i, $y + $j), $image->getColorAt(new Point($i, $j)));
+        $tempColor = [0, 0, 0, 1];
+        $this->setColorOutBox($image, $tempColor, $radius);
+        $image->transparent($tempColor);
+        $box->instance()->paste($image, new Point($x, $y));
+    }
+
+    protected function setColorOutBox(ImageAdapter $box, $color, $radius) {
+        $width = $box->getWidth();
+        $height = $box->getHeight();
+        $each = function ($radius, $cb) {
+            if ($radius < 1) {
+                return;
+            }
+            for ($i = 0; $i < $radius; $i ++) {
+                for ($j = 0; $j < $radius; $j ++) {
+                    if (pow($radius - $i, 2) + pow($radius - $j, 2)
+                        > pow($radius, 2)) {
+                        $cb($i, $j);
+                    } else {
+                        break;
+                    }
                 }
             }
-        }
+        };
+        $each($radius[0], function ($i, $j) use ($box, $color) {
+            $box->dot(new Point($i, $j), $color);
+        });
+        $each($radius[1], function ($i, $j) use ($width, $box, $color) {
+            $box->dot(new Point($width - $i, $j), $color);
+        });
+        $each($radius[2], function ($i, $j) use ($width, $height, $box, $color) {
+            $box->dot(new Point($width - $i, $height - $j), $color);
+        });
+        $each($radius[3], function ($i, $j) use ($width, $height, $box, $color) {
+            $box->dot(new Point($i, $height - $j), $color);
+        });
     }
 
     protected function isBoxInner($x, $y, $width, $height, $radius) {

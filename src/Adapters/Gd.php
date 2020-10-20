@@ -143,6 +143,49 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
+    /**
+     * 截取一部分图片放在什么位置
+     * @param ImageAdapter $src 源图
+     * @param PointInterface $srcStart 源图截取的位置
+     * @param BoxInterface $srcBox 源图截取的大小
+     * @param PointInterface $start 放在什么位置
+     * @param BoxInterface|null $box 是否放大
+     * @param int $alpha 未实现
+     * @return Gd
+     */
+    public function pastePart(ImageAdapter $src, PointInterface $srcStart, BoxInterface $srcBox, PointInterface $start, BoxInterface $box = null, $alpha = 100) {
+        if (!$src instanceof self) {
+            throw new InvalidArgumentException(sprintf('Gd\Image can only paste() Gd\Image instances, %s given', get_class($image)));
+        }
+
+        $alpha = (int) round($alpha);
+        if ($alpha < 0 || $alpha > 100) {
+            throw new InvalidArgumentException(sprintf('The %1$s argument can range from %2$d to %3$d, but you specified %4$d.', '$alpha', 0, 100, $alpha));
+        }
+        if ($box === null) {
+            $box = $srcBox;
+        }
+
+        imagealphablending($this->resource, true);
+        imagealphablending($src->resource, true);
+
+        $success = imagecopyresampled($this->resource, $src->resource,
+            $start->getX(), $start->getY(), $srcStart->getX(), $srcStart->getY(),
+            $box->getWidth(), $box->getHeight(), $srcBox->getWidth(), $srcBox->getHeight());
+
+        imagealphablending($this->resource, false);
+        imagealphablending($src->resource, false);
+
+        if ($success === false) {
+            throw new RuntimeException('Image paste operation failed');
+        }
+        return $this;
+    }
+
+    public function thumbnail(BoxInterface $box) {
+        return $this->scale($box);
+    }
+
     final public function resize(BoxInterface $size, $filter = ImageAdapter::FILTER_UNDEFINED)
     {
         if (ImageAdapter::FILTER_UNDEFINED !== $filter) {
@@ -179,7 +222,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         if ($background === null) {
             $background = '#fff';
         }
-        $color = $this->getColor($background);
+        $color = $this->converterToColor($background);
         $resource = imagerotate($this->resource, -1 * $angle, $color);
 
         if (false === $resource) {
@@ -216,7 +259,7 @@ class Gd extends AbstractImage implements ImageAdapter {
                 $size->getHeight(),
                 $size->getWidth(),
                 0,
-                $this->getColor($fill)
+                $this->converterToColor($fill)
             );
             return $this;
         }
@@ -247,7 +290,7 @@ class Gd extends AbstractImage implements ImageAdapter {
             throw new RuntimeException('Draw arc operation failed');
         }
 
-        if (false === imagearc($this->resource, $center->getX(), $center->getY(), $size->getWidth(), $size->getHeight(), $start, $end, $this->getColor($color))) {
+        if (false === imagearc($this->resource, $center->getX(), $center->getY(), $size->getWidth(), $size->getHeight(), $start, $end, $this->converterToColor($color))) {
             imagealphablending($this->resource, false);
             throw new RuntimeException('Draw arc operation failed');
         }
@@ -273,13 +316,13 @@ class Gd extends AbstractImage implements ImageAdapter {
 
         if ($fill) {
             $style = IMG_ARC_CHORD;
-            if (false === imagefilledarc($this->resource, $center->getX(), $center->getY(), $size->getWidth(), $size->getHeight(), $start, $end, $this->getColor($color), $style)) {
+            if (false === imagefilledarc($this->resource, $center->getX(), $center->getY(), $size->getWidth(), $size->getHeight(), $start, $end, $this->converterToColor($color), $style)) {
                 imagealphablending($this->resource, false);
                 throw new RuntimeException('Draw chord operation failed');
             }
         } else {
             foreach (array(IMG_ARC_NOFILL, IMG_ARC_NOFILL | IMG_ARC_CHORD) as $style) {
-                if (false === imagefilledarc($this->resource, $center->getX(), $center->getY(), $size->getWidth(), $size->getHeight(), $start, $end, $this->getColor($color), $style)) {
+                if (false === imagefilledarc($this->resource, $center->getX(), $center->getY(), $size->getWidth(), $size->getHeight(), $start, $end, $this->converterToColor($color), $style)) {
                     imagealphablending($this->resource, false);
                     throw new RuntimeException('Draw chord operation failed');
                 }
@@ -327,7 +370,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         if (function_exists('imageantialias')) {
             imageantialias($this->resource, true);
         }
-        if (false === $callback($this->resource, $center->getX(), $center->getY(), $size->getWidth(), $size->getHeight(), $this->getColor($color))) {
+        if (false === $callback($this->resource, $center->getX(), $center->getY(), $size->getWidth(), $size->getHeight(), $this->converterToColor($color))) {
             imagealphablending($this->resource, false);
             throw new RuntimeException('Draw ellipse operation failed');
         }
@@ -351,7 +394,7 @@ class Gd extends AbstractImage implements ImageAdapter {
             throw new RuntimeException('Draw line operation failed');
         }
 
-        if (false === imageline($this->resource, $start->getX(), $start->getY(), $end->getX(), $end->getY(), $this->getColor($color))) {
+        if (false === imageline($this->resource, $start->getX(), $start->getY(), $end->getX(), $end->getY(), $this->converterToColor($color))) {
             imagealphablending($this->resource, false);
             throw new RuntimeException('Draw line operation failed');
         }
@@ -381,7 +424,7 @@ class Gd extends AbstractImage implements ImageAdapter {
             throw new RuntimeException('Draw chord operation failed');
         }
 
-        if (false === imagefilledarc($this->resource, $center->getX(), $center->getY(), $size->getWidth(), $size->getHeight(), $start, $end, $this->getColor($color), $style)) {
+        if (false === imagefilledarc($this->resource, $center->getX(), $center->getY(), $size->getWidth(), $size->getHeight(), $start, $end, $this->converterToColor($color), $style)) {
             imagealphablending($this->resource, false);
             throw new RuntimeException('Draw chord operation failed');
         }
@@ -399,7 +442,7 @@ class Gd extends AbstractImage implements ImageAdapter {
             throw new RuntimeException('Draw point operation failed');
         }
 
-        if (false === imagesetpixel($this->resource, $position->getX(), $position->getY(), $this->getColor($color))) {
+        if (false === imagesetpixel($this->resource, $position->getX(), $position->getY(), $this->converterToColor($color))) {
             imagealphablending($this->resource, false);
             throw new RuntimeException('Draw point operation failed');
         }
@@ -434,7 +477,7 @@ class Gd extends AbstractImage implements ImageAdapter {
             throw new RuntimeException('Draw polygon operation failed');
         }
 
-        if (false === $callback($this->resource, $minX, $minY, $maxX, $maxY, $this->getColor($color))) {
+        if (false === $callback($this->resource, $minX, $minY, $maxX, $maxY, $this->converterToColor($color))) {
             imagealphablending($this->resource, false);
             throw new RuntimeException('Draw polygon operation failed');
         }
@@ -472,7 +515,7 @@ class Gd extends AbstractImage implements ImageAdapter {
             throw new RuntimeException('Draw polygon operation failed');
         }
 
-        if (false === $callback($this->resource, $points, count($coordinates), $this->getColor($color))) {
+        if (false === $callback($this->resource, $points, count($coordinates), $this->converterToColor($color))) {
             imagealphablending($this->resource, false);
             throw new RuntimeException('Draw polygon operation failed');
         }
@@ -490,7 +533,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         $fontsize = $font->getSize();
         $fontfile = $font->getFile();
         $x = $position->getX();
-        $y = $position->getY() + $fontsize;
+        $y = $position->getY();// + $fontsize;
 
         if ($width !== null) {
             $string = $font->wrapText($string, $width, $angle);
@@ -508,12 +551,12 @@ class Gd extends AbstractImage implements ImageAdapter {
             }
         }
         if (is_numeric($fontfile)) {
-            $y -= $fontsize;
-            if (false === imagestring($this->resource, intval($fontfile), $x, $y, $string, $this->getColor($font->getColor()))) {
+            //$y -= $fontsize;
+            if (false === imagestring($this->resource, intval($fontfile), $x, $y, $string, $this->converterToColor($font->getColor()))) {
                 imagealphablending($this->resource, false);
                 throw new RuntimeException('Font mask operation failed');
             }
-        } else if (false === imagefttext($this->resource, $fontsize, $angle, $x, $y, $this->getColor($font->getColor()), $fontfile, $string)) {
+        } else if (false === imagefttext($this->resource, $fontsize, $angle, $x, $y, $this->converterToColor($font->getColor()), $fontfile, $string)) {
             imagealphablending($this->resource, false);
             throw new RuntimeException('Font mask operation failed');
         }
@@ -536,7 +579,7 @@ class Gd extends AbstractImage implements ImageAdapter {
      * @return int
      */
     public function transparent($color) {
-        return imagecolortransparent($this->image, $this->getColor($color));
+        return imagecolortransparent($this->image, $this->converterToColor($color));
     }
 
     public function gamma($correction)
@@ -621,12 +664,22 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function getColor($color) {
+    public function converterToColor($color) {
         $color = Colors::converter(...func_get_args());
         if (is_integer($color)) {
             return $color;
         }
         return imagecolorallocate($this->resource, $color[0], $color[1], $color[2]);
+    }
+
+    public function converterFromColor($color) {
+        $result = imagecolorsforindex($this->image, $color);
+        return array(
+            $result['red'],
+            $result['green'],
+            $result['blue'],
+            $result['alpha'],
+        );
     }
 
     public function getColorAt(PointInterface $point) {

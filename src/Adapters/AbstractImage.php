@@ -87,18 +87,20 @@ abstract class AbstractImage implements ImageAdapter {
     /**
      * 设置真实类型
      * @param $type
+     * @return static
      */
     public function setRealType($type) {
         if (empty($type)) {
-            return;
+            return $this;
         }
         foreach (self::ALLOW_TYPES as $key => $item) {
             if ((!is_array($item) && $item == $type)
                 || (is_array($item) && in_array($type, $item))) {
                 $this->realType = $type;
-                return;
+                return $this;
             }
         }
+        return $this;
     }
 
     public function save() {

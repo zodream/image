@@ -1,6 +1,10 @@
 <?php
 namespace Zodream\Image;
 
+use Zodream\Image\Adapters\ImageAdapter;
+use Zodream\Image\Base\Box;
+use Zodream\Image\Base\Point;
+
 class SlideCaptcha extends Image {
 
     /**
@@ -11,12 +15,12 @@ class SlideCaptcha extends Image {
     protected $alpha = .5;
 
     /**
-     * @var Image
+     * @var ImageAdapter
      */
     protected $shapeImage;
 
     /**
-     * @var Image
+     * @var ImageAdapter
      */
     protected $slideImage;
 
@@ -26,7 +30,12 @@ class SlideCaptcha extends Image {
     }
 
     public function setShape($shape) {
-        $this->shapeImage = $shape instanceof Image ? $shape : new Image($shape);
+        if ($shape instanceof Image) {
+            $shape = $shape->instance();
+        } elseif (!$shape instanceof ImageAdapter) {
+            $shape = ImageManager::create()->loadResource($shape);
+        }
+        $this->shapeImage = $shape;
         return $this;
     }
 
@@ -43,7 +52,7 @@ class SlideCaptcha extends Image {
     }
 
     /**
-     * @return Image
+     * @return ImageAdapter
      */
     public function getSlideImage() {
         return $this->slideImage;
@@ -58,11 +67,12 @@ class SlideCaptcha extends Image {
         $height = $this->shapeImage->getHeight();
         if (empty($this->point)) {
             $this->point = [
-                rand($width, $this->width - $width),
-                rand(0, $this->height - $height)
+                rand($width, $this->instance()->getWidth() - $width),
+                rand(0, $this->instance()->getHeight() - $height)
             ];
         }
-        $this->slideImage = ImageStatic::canvas($width, $height, 'png');
+        $this->slideImage = ImageManager::create()->create(new Box($width, $height))
+            ->setRealType('png');
         for ($i = 0; $i < $width; $i ++) {
             for ($j = 0; $j < $height; $j ++) {
                 $current = $this->isValidBound($i, $j);
@@ -71,17 +81,17 @@ class SlideCaptcha extends Image {
                 }
                 $real_x = $i + $this->point[0];
                 $real_y = $j + $this->point[1];
-                $color = $this->getColor($real_x, $real_y);
-                $this->slideImage->setColor($i, $j, $color);
-                list($r, $g, $b) = $this->getRgbByColor($color);
-                $this->setColor($real_x, $real_y, [
+                $color = $this->instance()->getColorAt(new Point($real_x, $real_y));
+                $this->slideImage->dot(new Point($i, $j), $color);
+                list($r, $g, $b) = $this->instance()->converterFromColor($color);
+                $this->instance()->dot(new Point($real_x, $real_y), [
                     floor($r * $this->alpha),
                     floor($g * $this->alpha),
                     floor($b * $this->alpha),
                 ]);
             }
         }
-        $this->slideImage->setTransparent(0, 0, 0);
+        $this->slideImage->transparent([0, 0, 0]);
     }
 
     /**
@@ -91,7 +101,8 @@ class SlideCaptcha extends Image {
      * @return true
      */
     public function isValidBound($x, $y) {
-        list($r, $g, $b) = $this->shapeImage->getRGB($x, $y);
+        list($r, $g, $b) = $this->shapeImage->converterFromColor(
+            $this->shapeImage->getColorAt(new Point($x, $y)));
         return $r < 240 || $g < 240 || $b < 240;
     }
 
@@ -108,11 +119,12 @@ class SlideCaptcha extends Image {
         }
         $min = min(...$args);
         $max = max(...$args);
-        $image = ImageStatic::canvas($this->width, $this->height);
+        $image = new Image();
+        $image->instance()->create($this->instance()->getSize());
         $length = $max - $min + 1;
         $count = ceil($length / $rows);
-        $width = $this->width / $count;
-        $height = $this->height / $rows;
+        $width = $this->instance()->getWidth() / $count;
+        $height = $this->instance()->getHeight() / $rows;
         $points = [];
         foreach ($args as $i => $arg) {
             $arg = $arg - $min;
@@ -122,7 +134,8 @@ class SlideCaptcha extends Image {
             $srcY = floor($i / $count) * $height;
             // 计算显示是图片唯一
             $points[] = [- $x, -$y];
-            $image->copyFromWithReSampling($this, $srcX, $srcY, $x, $y, $width, $height, $width, $height);
+            $image->instance()->pastePart($this->instance(), new Point($srcX, $srcY),
+                new Box($width, $height), new Point($x, $y));
 
         }
         return [$image, $points, [$width, $height]];

@@ -69,7 +69,7 @@ class NodeHelper {
             if (($diff > 0 && $start >= $end) || ($diff < 0 && $start <= $end)) {
                 return;
             }
-            $start += $step;
+            $start += $diff;
             if (($diff > 0 && $start > $end) || ($diff < 0 && $start < $end)) {
                 $start = $end;
             }
