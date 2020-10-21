@@ -101,6 +101,7 @@ class BoxNode extends BaseNode {
     protected function drawBackgroundImage(Image $box, ImgNode $node, $x, $y, $width, $height, $radius) {
         if ($this->isEmpty($radius)) {
             $node->refresh($this->computed);
+            $node->refreshAsBackground($this->computed);
             $node->draw($box);
             return;
         }

@@ -2,6 +2,7 @@
 namespace Zodream\Image\Node;
 
 use phpDocumentor\Reflection\Types\This;
+use Zodream\Helpers\Str;
 
 class NodeHelper {
 
@@ -41,7 +42,7 @@ class NodeHelper {
         return $formatVal($property);
     }
 
-    public static function width($value, array $parentProperties) {
+    public static function width($value, array $parentProperties, $property = 'width') {
         if (empty($value)) {
             return null;
         }
@@ -54,12 +55,32 @@ class NodeHelper {
 
         $arg = floatval($match[1]);
         if ($match[2] === '%') {
-            return $arg * $parentProperties['innerWidth'] / 100;
+            $key = 'inner'.Str::studly($property);
+            if (!isset($parentProperties[$key])) {
+               $key = 'innerWidth';
+            }
+            return $arg * $parentProperties[$key] / 100;
         }
         if ($match[2] === 'vw') {
             return $arg * $parentProperties['viewWidth'] / 100;
         }
         return $arg * $parentProperties['viewHeight'] / 100;
+    }
+
+    /**
+     * 根据百分比算值
+     * @param $length
+     * @param $val
+     * @return int
+     */
+    public static function percentage($length, $val) {
+        if (is_numeric($val)) {
+            return intval($val);
+        }
+        if (!preg_match('/([\d\.]+)\s*(%|vw|vh)/', $val, $match)) {
+            return intval($val);
+        }
+        return intval($length * floatval($match[1]) / 100);
     }
 
     public static function step($cb, $start, $end, $step = 1) {

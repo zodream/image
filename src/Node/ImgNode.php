@@ -47,6 +47,20 @@ class ImgNode extends BaseNode {
         return parent::refreshSize($styles, $parentInnerWidth, $parentStyles);
     }
 
+    public function refreshAsBackground(array $parentStyles) {
+        if (isset($this->styles['full'])) {
+            $this->computed['width'] = $parentStyles['width'];
+            $this->computed['height'] = $parentStyles['height'];
+            return;
+        }
+        if (isset($this->styles['width']) && strpos($this->styles['width'], '%')) {
+            $this->computed['width'] = NodeHelper::percentage($parentStyles['width'], $this->styles['width']);
+        }
+        if (isset($this->styles['height']) && strpos($this->styles['height'], '%')) {
+            $this->computed['height'] = NodeHelper::percentage($parentStyles['height'], $this->styles['height']);
+        }
+    }
+
     public function outerHeight() {
         return $this->computed['outerHeight'];
     }
@@ -71,7 +85,8 @@ class ImgNode extends BaseNode {
             && is_numeric($this->styles['width'])) {
             return $this->styles['width'] * $this->getImage()->getHeight() / $this->getImage()->getWidth();
         }
-        $width = NodeHelper::width(isset($this->styles['height']) ? $this->styles['height'] : null, $properties);
+        $width = NodeHelper::width(isset($this->styles['height'])
+            ? $this->styles['height'] : null, $properties, 'height');
         if (!empty($width)) {
             return $width;
         }
