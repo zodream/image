@@ -55,21 +55,21 @@ class ImgNode extends BaseNode {
         if (!isset($this->styles['width'])
             && isset($this->styles['height'])
             && is_numeric($this->styles['height'])) {
-            return $this->styles['height'] * $this->image->getWidth()
-                / $this->image->getHeight();
+            return $this->styles['height'] * $this->getImage()->getWidth()
+                / $this->getImage()->getHeight();
         }
         $width = NodeHelper::width(isset($this->styles['width']) ? $this->styles['width'] : null, $properties);
         if (!empty($width)) {
             return $width;
         }
-        return $this->image->getWidth();
+        return $this->getImage()->getWidth();
     }
 
     protected function getHeight(array $properties) {
         if (!isset($this->styles['height'])
             && isset($this->styles['width'])
             && is_numeric($this->styles['width'])) {
-            return $this->styles['width'] * $this->image->getHeight() / $this->image->getWidth();
+            return $this->styles['width'] * $this->getImage()->getHeight() / $this->getImage()->getWidth();
         }
         $width = NodeHelper::width(isset($this->styles['height']) ? $this->styles['height'] : null, $properties);
         if (!empty($width)) {

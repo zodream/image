@@ -576,10 +576,13 @@ class Gd extends AbstractImage implements ImageAdapter {
     /**
      * 将某个颜色定义为透明色
      * @param $color
-     * @return int
+     * @return static
      */
     public function transparent($color) {
-        return imagecolortransparent($this->image, $this->converterToColor($color));
+        imagecolortransparent($this->resource, $this->converterToColor($color));
+        imagealphablending($this->resource, false);
+        imagesavealpha($this->resource, true);
+        return $this;
     }
 
     public function gamma($correction)
@@ -673,7 +676,7 @@ class Gd extends AbstractImage implements ImageAdapter {
     }
 
     public function converterFromColor($color) {
-        $result = imagecolorsforindex($this->image, $color);
+        $result = imagecolorsforindex($this->resource, $color);
         return array(
             $result['red'],
             $result['green'],

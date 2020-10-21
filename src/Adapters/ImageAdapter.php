@@ -207,6 +207,8 @@ interface ImageAdapter {
 
     public function getWidth();
 
+    public function getRealType();
+
     /**
      * @return BoxInterface
      */
