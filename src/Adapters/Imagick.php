@@ -737,7 +737,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
             } catch (\ImagickException $e) {
                 $error = $e;
             }
-            if ($pasteMe !== $image->imagick) {
+            if ($pasteMe !== $image->resource) {
                 $pasteMe->clear();
                 $pasteMe->destroy();
             }

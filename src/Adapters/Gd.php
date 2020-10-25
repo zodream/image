@@ -56,34 +56,72 @@ class Gd extends AbstractImage implements ImageAdapter {
     }
 
     public function open($file) {
-        if ($this->check($file)) {
-            $this->file = $file;
-            $imageInfo = getimagesize($file);
-            $this->width = $imageInfo[0];
-            $this->height = $imageInfo[1];
-            $this->type = empty($type)
-                ? image_type_to_extension($imageInfo[2], false)
-                : $type;
-            $this->setRealType($this->type);
-            if (false !== $this->realType) {
-                $this->resource = call_user_func('imagecreatefrom'.$this->realType, $file);
-            }
+        if (!$this->check($file)) {
+            throw new \Exception('file error');
         }
+        $this->file = $file;
+        $imageInfo = getimagesize($file);
+        $this->width = $imageInfo[0];
+        $this->height = $imageInfo[1];
+        $this->type = empty($type)
+            ? image_type_to_extension($imageInfo[2], false)
+            : $type;
+        $this->setRealType($this->type);
+        if (false === $this->realType) {
+            throw new \Exception('image type error');
+        }
+        $resource = call_user_func('imagecreatefrom'.$this->realType, $file);
+        $this->wrap($resource);
         return $this;
     }
 
     public function load($string) {
-        $this->resource = imagecreatefromstring($string);
+        $this->wrap(imagecreatefromstring($string));
         $this->height = imagesy($this->resource);
         $this->width = imagesx($this->resource);
         return $this;
     }
 
     public function read($resource) {
-        $this->resource = $resource;
+        $this->wrap($resource);
         $this->height = imagesy($this->resource);
         $this->width = imagesx($this->resource);
         return $this;
+    }
+
+    protected function wrap($resource) {
+        if (!imageistruecolor($resource)) {
+            if (\function_exists('imagepalettetotruecolor')) {
+                if (false === imagepalettetotruecolor($resource)) {
+                    throw new RuntimeException('Could not convert a palette based image to true color');
+                }
+            } else {
+                list($width, $height) = array(imagesx($resource), imagesy($resource));
+
+                // create transparent truecolor canvas
+                $truecolor = imagecreatetruecolor($width, $height);
+                $transparent = imagecolorallocatealpha($truecolor, 255, 255, 255, 127);
+
+                imagealphablending($truecolor, false);
+                imagefilledrectangle($truecolor, 0, 0, $width, $height, $transparent);
+                imagealphablending($truecolor, false);
+
+                imagecopy($truecolor, $resource, 0, 0, 0, 0, $width, $height);
+
+                imagedestroy($resource);
+                $resource = $truecolor;
+            }
+        }
+        if (false === imagealphablending($resource, false) || false === imagesavealpha($resource, true)) {
+            throw new RuntimeException('Could not set alphablending, savealpha and antialias values');
+        }
+        if (\function_exists('imageantialias')) {
+            imageantialias($resource, true);
+        }
+        $this->resource = $resource;
+        if ($this->realType === 'png') {
+            $this->transparent([0, 0, 0, 1]);
+        }
     }
 
     final public function crop(PointInterface $start, BoxInterface $size)

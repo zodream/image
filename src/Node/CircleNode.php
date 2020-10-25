@@ -36,7 +36,7 @@ class CircleNode extends BaseNode {
             $startX = $this->computed['x'] - $r;
             $startY = $this->computed['y'] - $r;
             $isBlack = function ($rgb) {
-                return $rgb[0] === 0 && $rgb[1] === 0 && $rgb[2] === 0;
+                return $rgb[0] === 0 && $rgb[1] === 0 && $rgb[2] === 0 && $rgb[3] === 0;
             };
             for ($x = 0; $x < $width; $x ++) {
                 for ($y = 0; $y < $width; $y ++) {
