@@ -10,8 +10,7 @@ use Zodream\Helpers\Security\Hash;
 use Zodream\Image\Base\Box;
 use Zodream\Image\Base\Font;
 use Zodream\Image\Base\Point;
-use Zodream\Infrastructure\Traits\ConfigTrait;
-use Zodream\Service\Factory;
+use Zodream\Infrastructure\Concerns\ConfigTrait;
 
 class Captcha extends Image {
 

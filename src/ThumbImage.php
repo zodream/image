@@ -1,5 +1,6 @@
 <?php
 namespace Zodream\Image;
+
 use Zodream\Image\Base\Box;
 
 /**
