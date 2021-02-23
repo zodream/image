@@ -9,6 +9,7 @@ use BaconQrCode\Writer;
 use Zodream\Image\Adapters\ImageAdapter;
 use Zodream\Image\Base\Box;
 use Zodream\Image\Base\Point;
+use Zodream\Image\Renderer\QrCodeImageBackEnd;
 use Zxing\QrReader;
 
 /**
@@ -71,11 +72,11 @@ class QrCode extends Image {
 	public function encode($value) {
         $renderer = new ImageRenderer(
             new RendererStyle($this->width),
-            new ImagickImageBackEnd()
+            new QrCodeImageBackEnd()
         );
         $writer = new Writer($renderer);
         $content = $writer->writeString($value, $this->encoding, ErrorCorrectionLevel::forBits($this->level));
-        $this->instance()->load($content);
+        $this->instance()->setRealType('png')->load($content);
 		return $this;
 	}
 

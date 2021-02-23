@@ -264,23 +264,97 @@ interface ImageAdapter {
 
     public function fill($fill);
 
+    /**
+     * 画弧
+     * @param PointInterface $center
+     * @param BoxInterface $size
+     * @param $start
+     * @param $end
+     * @param $color
+     * @param int $thickness
+     * @return mixed
+     */
     public function arc(PointInterface $center, BoxInterface  $size, $start, $end, $color, $thickness = 1);
 
+    /**
+     * 画椭圆弧
+     * @param PointInterface $center
+     * @param BoxInterface $size
+     * @param $start
+     * @param $end
+     * @param $color
+     * @param false $fill
+     * @param int $thickness
+     * @return mixed
+     */
     public function chord(PointInterface $center, BoxInterface  $size, $start, $end, $color, $fill = false, $thickness = 1);
 
+    /**
+     * 画圆
+     * @param PointInterface $center
+     * @param $radius
+     * @param $color
+     * @param false $fill
+     * @param int $thickness
+     * @return mixed
+     */
     public function circle(PointInterface $center, $radius, $color, $fill = false, $thickness = 1);
 
+    /**
+     * 画椭圆
+     * @param PointInterface $center
+     * @param BoxInterface $size
+     * @param $color
+     * @param false $fill
+     * @param int $thickness
+     * @return mixed
+     */
     public function ellipse(PointInterface $center, BoxInterface  $size, $color, $fill = false, $thickness = 1);
 
+    /**
+     * 画直线
+     * @param PointInterface $start
+     * @param PointInterface $end
+     * @param $outline
+     * @param int $thickness
+     * @return mixed
+     */
     public function line(PointInterface $start, PointInterface $end, $outline, $thickness = 1);
 
+    /**
+     * 画扇形
+     * @param PointInterface $center
+     * @param BoxInterface $size
+     * @param $start
+     * @param $end
+     * @param $color
+     * @param false $fill
+     * @param int $thickness
+     * @return mixed
+     */
     public function pieSlice(PointInterface $center, BoxInterface  $size, $start, $end, $color, $fill = false, $thickness = 1);
 
+    /**
+     * 画点
+     * @param PointInterface $position
+     * @param $color
+     * @return mixed
+     */
     public function dot(PointInterface $position, $color);
 
+    /**
+     * 画长方体
+     * @param PointInterface $leftTop
+     * @param PointInterface $rightBottom
+     * @param $color
+     * @param false $fill
+     * @param int $thickness
+     * @return mixed
+     */
     public function rectangle(PointInterface $leftTop, PointInterface $rightBottom, $color, $fill = false, $thickness = 1);
 
     /**
+     * 画多边形
      * @param array $coordinates
      * @param $color
      * @param false $fill

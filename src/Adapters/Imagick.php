@@ -143,7 +143,13 @@ class Imagick extends AbstractImage implements ImageAdapter {
             $arc->setStrokeColor($pixel);
             $arc->setStrokeWidth($thickness);
             $arc->setFillColor('transparent');
-            $arc->arc($x - $width / 2, $y - $height / 2, $x + $width / 2, $y + $height / 2, $start, $end);
+            $arc->arc(
+                $x - $width / 2,
+                $y - $height / 2,
+                $x + $width / 2,
+                $y + $height / 2,
+                $start, $end
+            );
 
             $this->resource->drawImage($arc);
 
