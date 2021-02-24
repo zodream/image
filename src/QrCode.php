@@ -2,6 +2,7 @@
 namespace Zodream\Image;
 
 use BaconQrCode\Common\ErrorCorrectionLevel;
+use BaconQrCode\Encoder\Encoder;
 use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
@@ -10,6 +11,7 @@ use Zodream\Image\Adapters\ImageAdapter;
 use Zodream\Image\Base\Box;
 use Zodream\Image\Base\Point;
 use Zodream\Image\Renderer\QrCodeImageBackEnd;
+use Zodream\Image\Renderer\QrCodeImageRenderer;
 use Zxing\QrReader;
 
 /**
@@ -69,14 +71,10 @@ class QrCode extends Image {
      * @param string $value
      * @return $this
      */
-	public function encode($value) {
-        $renderer = new ImageRenderer(
-            new RendererStyle($this->width),
-            new QrCodeImageBackEnd()
-        );
-        $writer = new Writer($renderer);
-        $content = $writer->writeString($value, $this->encoding, ErrorCorrectionLevel::forBits($this->level));
-        $this->instance()->setRealType('png')->load($content);
+	public function encode(string $value) {
+	    $renderer = new QrCodeImageRenderer(new RendererStyle($this->width));
+	    $renderer->render(Encoder::encode($value, ErrorCorrectionLevel::forBits($this->level), $this->encoding));
+        $this->resource = $renderer->getImage();
 		return $this;
 	}
 

@@ -125,7 +125,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function arc(PointInterface $center, BoxInterface $size, $start, $end, $color, $thickness = 1)
+    public function arc(PointInterface $center, BoxInterface  $size, int $start, int $end, $color, int $thickness = 1)
     {
         $thickness = max(0, (int) round($thickness));
         if ($thickness === 0) {
@@ -169,7 +169,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function chord(PointInterface $center, BoxInterface $size, $start, $end, $color, $fill = false, $thickness = 1)
+    public function chord(PointInterface $center, BoxInterface  $size, int $start, int $end, $color, bool $fill = false, int $thickness = 1)
     {
         $thickness = max(0, (int) round($thickness));
         if ($thickness === 0 && !$fill) {
@@ -223,7 +223,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function circle(PointInterface $center, $radius, $color, $fill = false, $thickness = 1)
+    public function circle(PointInterface $center, int|float $radius, $color, bool $fill = false, int $thickness = 1)
     {
         $diameter = $radius * 2;
 
@@ -234,7 +234,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function ellipse(PointInterface $center, BoxInterface $size, $color, $fill = false, $thickness = 1)
+    public function ellipse(PointInterface $center, BoxInterface $size, $color, bool $fill = false, int $thickness = 1)
     {
         $thickness = max(0, (int) round($thickness));
         if ($thickness === 0 && !$fill) {
@@ -283,14 +283,14 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function line(PointInterface $start, PointInterface $end, $color, $thickness = 1)
+    public function line(PointInterface $start, PointInterface $end, $outline, int $thickness = 1)
     {
         $thickness = max(0, (int) round($thickness));
         if ($thickness === 0) {
             return $this;
         }
         try {
-            $pixel = $this->converterToColor($color);
+            $pixel = $this->converterToColor($outline);
             $line = new \ImagickDraw();
 
             $line->setStrokeColor($pixel);
@@ -321,7 +321,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function pieSlice(PointInterface $center, BoxInterface $size, $start, $end, $color, $fill = false, $thickness = 1)
+    public function pieSlice(PointInterface $center, BoxInterface  $size, int $start, int $end, $color, bool $fill = false, int $thickness = 1)
     {
         $thickness = max(0, (int) round($thickness));
         if ($thickness === 0 && !$fill) {
@@ -390,7 +390,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function rectangle(PointInterface $leftTop, PointInterface $rightBottom, $color, $fill = false, $thickness = 1)
+    public function rectangle(PointInterface $leftTop, PointInterface $rightBottom, $color, bool $fill = false, int $thickness = 1)
     {
         $thickness = max(0, (int) round($thickness));
         if ($thickness === 0 && !$fill) {
@@ -432,7 +432,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function polygon(array $coordinates, $color, $fill = false, $thickness = 1)
+    public function polygon(array $coordinates, $color, bool $fill = false, int $thickness = 1)
     {
         if (count($coordinates) < 3) {
             throw new InvalidArgumentException(sprintf('Polygon must consist of at least 3 coordinates, %d given', count($coordinates)));
@@ -478,7 +478,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function text($string, FontInterface $font, PointInterface $position, $angle = 0, $width = null)
+    public function text(string $string, FontInterface $font, PointInterface $position, int|float $angle = 0, int $width = 0)
     {
         try {
             $pixel = $this->converterToColor($font->getColor());
@@ -499,7 +499,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
             $text->setFillColor($pixel);
             $text->setTextAntialias(true);
 
-            if ($width !== null) {
+            if ($width !== 0) {
                 $string = $font->wrapText($string, $width, $angle);
             }
 
@@ -535,7 +535,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function fontSize($string, FontInterface $font, $angle = 0)
+    public function fontSize(string $string, FontInterface $font, int|float $angle = 0)
     {
         $text = new \ImagickDraw();
 
@@ -561,7 +561,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function gamma($correction)
+    public function gamma(float $correction)
     {
         try {
             $this->resource->gammaImage($correction, \Imagick::CHANNEL_ALL);
@@ -640,7 +640,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function blur($sigma = 1)
+    public function blur(float $sigma = 1)
     {
         try {
             $this->resource->gaussianBlurImage(0, $sigma);
@@ -655,7 +655,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function brightness($brightness)
+    public function brightness(float $brightness)
     {
         $brightness = (int) round($brightness);
         if ($brightness < -100 || $brightness > 100) {
@@ -710,7 +710,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function paste(ImageAdapter $image, PointInterface $start, $alpha = 100)
+    public function paste(ImageAdapter $image, PointInterface $start, int|float $alpha = 100)
     {
         if (!$image instanceof self) {
             throw new InvalidArgumentException(sprintf('Imagick\Image can only paste() Imagick\Image instances, %s given', get_class($image)));
@@ -755,7 +755,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function pastePart(ImageAdapter $src, PointInterface $srcStart, BoxInterface $srcBox, PointInterface $start, BoxInterface $box = null, $alpha = 100)
+    public function pastePart(ImageAdapter $src, PointInterface $srcStart, BoxInterface $srcBox, PointInterface $start, BoxInterface $box = null, int|float $alpha = 100)
     {
         // TODO: Implement pastePart() method.
     }
@@ -911,7 +911,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function saveAs($output = null, $type = 'jpeg')
+    public function saveAs($output = null, string $type = 'jpeg')
     {
         $this->setRealType($type);
         $this->resource->setImageFormat($this->getRealType());
@@ -922,7 +922,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
         return $this->resource->writeImage((string)$output);
     }
 
-    public function toBase64() {
+    public function toBase64(): string {
         return 'data:image/'.$this->getRealType().';base64,'.base64_encode($this->resource->getImageBlob());
     }
 

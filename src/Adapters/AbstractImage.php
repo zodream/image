@@ -3,6 +3,7 @@ namespace Zodream\Image\Adapters;
 
 use Zodream\Disk\File;
 use Zodream\Image\Base\Box;
+use Zodream\Image\Base\BoxInterface;
 
 abstract class AbstractImage implements ImageAdapter {
     const ALLOW_TYPES = array(
@@ -24,15 +25,15 @@ abstract class AbstractImage implements ImageAdapter {
         'gd2' => 'gd2'
     );
 
-    protected $file;
+    protected ?string $file;
 
-    protected $width;
+    protected int $width;
 
-    protected $height;
+    protected int $height;
 
-    protected $type;
+    protected ?string $type;
 
-    protected $realType;
+    protected ?string $realType;
 
     protected $resource;
 
@@ -68,19 +69,19 @@ abstract class AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function getHeight() {
+    public function getHeight(): int {
         return $this->height;
     }
 
-    public function getWidth() {
+    public function getWidth(): int {
         return $this->width;
     }
 
-    public function getSize() {
+    public function getSize(): BoxInterface {
         return new Box($this->getWidth(), $this->getHeight());
     }
 
-    public function getRealType() {
+    public function getRealType(): string {
         return $this->realType;
     }
 
@@ -89,7 +90,7 @@ abstract class AbstractImage implements ImageAdapter {
      * @param $type
      * @return static
      */
-    public function setRealType($type) {
+    public function setRealType(string $type) {
         if (empty($type)) {
             return $this;
         }
@@ -107,7 +108,7 @@ abstract class AbstractImage implements ImageAdapter {
         return $this->saveAs($this->file);
     }
 
-    public function toBase64() {
+    public function toBase64(): string {
         ob_start ();
         $this->saveAs();
         $data = ob_get_contents();

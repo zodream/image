@@ -147,7 +147,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    final public function paste(ImageAdapter $image, PointInterface $start, $alpha = 100)
+    final public function paste(ImageAdapter $image, PointInterface $start, int|float $alpha = 100)
     {
         if (!$image instanceof self) {
             throw new InvalidArgumentException(sprintf('Gd\Image can only paste() Gd\Image instances, %s given', get_class($image)));
@@ -191,9 +191,9 @@ class Gd extends AbstractImage implements ImageAdapter {
      * @param int $alpha 未实现
      * @return Gd
      */
-    public function pastePart(ImageAdapter $src, PointInterface $srcStart, BoxInterface $srcBox, PointInterface $start, BoxInterface $box = null, $alpha = 100) {
+    public function pastePart(ImageAdapter $src, PointInterface $srcStart, BoxInterface $srcBox, PointInterface $start, BoxInterface $box = null, int|float $alpha = 100) {
         if (!$src instanceof self) {
-            throw new InvalidArgumentException(sprintf('Gd\Image can only paste() Gd\Image instances, %s given', get_class($image)));
+            throw new InvalidArgumentException(sprintf('Gd\Image can only paste() Gd\Image instances, %s given', get_class($src)));
         }
 
         $alpha = (int) round($alpha);
@@ -316,7 +316,7 @@ class Gd extends AbstractImage implements ImageAdapter {
     }
 
 
-    public function arc(PointInterface $center, BoxInterface $size, $start, $end, $color, $thickness = 1)
+    public function arc(PointInterface $center, BoxInterface  $size, int $start, int $end, $color, int $thickness = 1)
     {
         $thickness = max(0, (int) round($thickness));
         if ($thickness === 0) {
@@ -340,7 +340,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function chord(PointInterface $center, BoxInterface $size, $start, $end, $color, $fill = false, $thickness = 1)
+    public function chord(PointInterface $center, BoxInterface  $size, int $start, int $end, $color, bool $fill = false, int $thickness = 1)
     {
         $thickness = max(0, (int) round($thickness));
         if ($thickness === 0 && !$fill) {
@@ -374,14 +374,14 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function circle(PointInterface $center, $radius, $color, $fill = false, $thickness = 1)
+    public function circle(PointInterface $center, int|float $radius, $color, bool $fill = false, int $thickness = 1)
     {
         $diameter = $radius * 2;
 
         return $this->ellipse($center, new Box($diameter, $diameter), $color, $fill, $thickness);
     }
 
-    public function ellipse(PointInterface $center, BoxInterface $size, $color, $fill = false, $thickness = 1)
+    public function ellipse(PointInterface $center, BoxInterface $size, $color, bool $fill = false, int $thickness = 1)
     {
         $thickness = max(0, (int) round($thickness));
         if ($thickness === 0 && !$fill) {
@@ -420,7 +420,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function line(PointInterface $start, PointInterface $end, $color, $thickness = 1)
+    public function line(PointInterface $start, PointInterface $end, $outline, int $thickness = 1)
     {
         $thickness = max(0, (int) round($thickness));
         if ($thickness === 0) {
@@ -432,7 +432,7 @@ class Gd extends AbstractImage implements ImageAdapter {
             throw new RuntimeException('Draw line operation failed');
         }
 
-        if (false === imageline($this->resource, $start->getX(), $start->getY(), $end->getX(), $end->getY(), $this->converterToColor($color))) {
+        if (false === imageline($this->resource, $start->getX(), $start->getY(), $end->getX(), $end->getY(), $this->converterToColor($outline))) {
             imagealphablending($this->resource, false);
             throw new RuntimeException('Draw line operation failed');
         }
@@ -444,7 +444,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function pieSlice(PointInterface $center, BoxInterface $size, $start, $end, $color, $fill = false, $thickness = 1)
+    public function pieSlice(PointInterface $center, BoxInterface  $size, int $start, int $end, $color, bool $fill = false, int $thickness = 1)
     {
         $thickness = max(0, (int) round($thickness));
         if ($thickness === 0 && !$fill) {
@@ -492,7 +492,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function rectangle(PointInterface $leftTop, PointInterface $rightBottom, $color, $fill = false, $thickness = 1)
+    public function rectangle(PointInterface $leftTop, PointInterface $rightBottom, $color, bool $fill = false, int $thickness = 1)
     {
         $thickness = max(0, (int) round($thickness));
         if ($thickness === 0 && !$fill) {
@@ -527,7 +527,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function polygon(array $coordinates, $color, $fill = false, $thickness = 1)
+    public function polygon(array $coordinates, $color, bool $fill = false, int $thickness = 1)
     {
         $thickness = max(0, (int) round($thickness));
         if ($thickness === 0 && !$fill) {
@@ -565,7 +565,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function text($string, FontInterface $font, PointInterface $position, $angle = 0, $width = null)
+    public function text(string $string, FontInterface $font, PointInterface $position, int|float $angle = 0, int $width = 0)
     {
         $angle = -1 * $angle;
         $fontsize = $font->getSize();
@@ -573,7 +573,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         $x = $position->getX();
         $y = $position->getY();// + $fontsize;
 
-        if ($width !== null) {
+        if ($width !== 0) {
             $string = $font->wrapText($string, $width, $angle);
         }
 
@@ -606,7 +606,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function fontSize($string, FontInterface $font, $angle = 0) {
+    public function fontSize(string $string, FontInterface $font, int|float $angle = 0) {
         $box = imagettfbbox($font->getSize(), $angle, $font->getFile(), $string);
         return new Box(abs($box[4] - $box[0]), abs($box[5] - $box[1]));
     }
@@ -623,7 +623,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function gamma($correction)
+    public function gamma(float $correction)
     {
         if (false === imagegammacorrect($this->resource, 1.0, $correction)) {
             throw new RuntimeException('Failed to apply gamma correction to the image');
@@ -671,7 +671,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function blur($sigma = 1)
+    public function blur(float $sigma = 1)
     {
         if (false === imagefilter($this->resource, IMG_FILTER_GAUSSIAN_BLUR)) {
             throw new RuntimeException('Failed to blur the image');
@@ -680,7 +680,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function brightness($brightness)
+    public function brightness(float $brightness)
     {
         $gdBrightness = (int) round($brightness / 100 * 255);
         if ($gdBrightness < -255 || $gdBrightness > 255) {
@@ -740,7 +740,7 @@ class Gd extends AbstractImage implements ImageAdapter {
      * @param string $type
      * @return bool
      */
-    public function saveAs($output = null, $type = '') {
+    public function saveAs($output = null, string $type = '') {
         $this->setRealType($type);
         if (!is_null($output)) {
             $output = (string)$output;

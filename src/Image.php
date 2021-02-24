@@ -13,7 +13,7 @@ class Image {
 	/**
 	 * @var ImageAdapter|AbstractImage
 	 */
-	private $resource;
+	protected $resource;
 
     public function instance() {
         if ($this->resource) {
@@ -66,7 +66,7 @@ class Image {
 	 * @param string $type
 	 * @return bool
 	 */
-    public function saveAs($output = null, $type = null) {
+    public function saveAs($output = null, string $type = '') {
         $this->instance()->saveAs($output, $type);
     }
 

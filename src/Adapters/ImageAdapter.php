@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image\Adapters;
 
 use Zodream\Image\Base\BoxInterface;
@@ -203,16 +204,16 @@ interface ImageAdapter {
 
     public function read($resource);
 
-    public function getHeight();
+    public function getHeight(): int;
 
-    public function getWidth();
+    public function getWidth(): int;
 
-    public function getRealType();
+    public function getRealType(): string;
 
     /**
      * @return BoxInterface
      */
-    public function getSize();
+    public function getSize(): BoxInterface;
 
     public function scale(BoxInterface $box);
 
@@ -224,7 +225,7 @@ interface ImageAdapter {
 
     public function resize(BoxInterface $size, $filter = ImageAdapter::FILTER_UNDEFINED);
 
-    public function rotate($angle, $background = null);
+    public function rotate(int|float $angle, $background = null);
 
     /**
      * 把一张图片放在什么位置上
@@ -233,7 +234,7 @@ interface ImageAdapter {
      * @param int $alpha 透明度
      * @return static
      */
-    public function paste(ImageAdapter $image, PointInterface  $start, $alpha = 100);
+    public function paste(ImageAdapter $image, PointInterface  $start, int|float $alpha = 100);
 
     /**
      * 截取一部分图片放在什么位置
@@ -242,14 +243,14 @@ interface ImageAdapter {
      * @param BoxInterface $srcBox 源图截取的大小
      * @param PointInterface $start 放在什么位置
      * @param BoxInterface|null $box 是否放大
-     * @param int $alpha
+     * @param int|float $alpha
      * @return static
      */
     public function pastePart(ImageAdapter $src,
                               PointInterface $srcStart,
                               BoxInterface $srcBox,
                               PointInterface $start,
-                              BoxInterface $box = null, $alpha = 100);
+                              BoxInterface $box = null, int|float $alpha = 100);
 
     /**
      * 生成缩略图
@@ -260,7 +261,7 @@ interface ImageAdapter {
 
     public function save();
 
-    public function saveAs($output = null, $type = '');
+    public function saveAs($output = null, string $type = '');
 
     public function fill($fill);
 
@@ -274,7 +275,7 @@ interface ImageAdapter {
      * @param int $thickness
      * @return mixed
      */
-    public function arc(PointInterface $center, BoxInterface  $size, $start, $end, $color, $thickness = 1);
+    public function arc(PointInterface $center, BoxInterface  $size, int $start, int $end, $color, int $thickness = 1);
 
     /**
      * 画椭圆弧
@@ -287,7 +288,7 @@ interface ImageAdapter {
      * @param int $thickness
      * @return mixed
      */
-    public function chord(PointInterface $center, BoxInterface  $size, $start, $end, $color, $fill = false, $thickness = 1);
+    public function chord(PointInterface $center, BoxInterface  $size, int $start, int $end, $color, bool $fill = false, int $thickness = 1);
 
     /**
      * 画圆
@@ -298,7 +299,7 @@ interface ImageAdapter {
      * @param int $thickness
      * @return mixed
      */
-    public function circle(PointInterface $center, $radius, $color, $fill = false, $thickness = 1);
+    public function circle(PointInterface $center, int|float $radius, $color, bool $fill = false, int $thickness = 1);
 
     /**
      * 画椭圆
@@ -309,7 +310,7 @@ interface ImageAdapter {
      * @param int $thickness
      * @return mixed
      */
-    public function ellipse(PointInterface $center, BoxInterface  $size, $color, $fill = false, $thickness = 1);
+    public function ellipse(PointInterface $center, BoxInterface  $size, $color, bool $fill = false, int $thickness = 1);
 
     /**
      * 画直线
@@ -319,7 +320,7 @@ interface ImageAdapter {
      * @param int $thickness
      * @return mixed
      */
-    public function line(PointInterface $start, PointInterface $end, $outline, $thickness = 1);
+    public function line(PointInterface $start, PointInterface $end, $outline, int $thickness = 1);
 
     /**
      * 画扇形
@@ -332,7 +333,7 @@ interface ImageAdapter {
      * @param int $thickness
      * @return mixed
      */
-    public function pieSlice(PointInterface $center, BoxInterface  $size, $start, $end, $color, $fill = false, $thickness = 1);
+    public function pieSlice(PointInterface $center, BoxInterface  $size, int $start, int $end, $color, bool $fill = false, int $thickness = 1);
 
     /**
      * 画点
@@ -351,7 +352,7 @@ interface ImageAdapter {
      * @param int $thickness
      * @return mixed
      */
-    public function rectangle(PointInterface $leftTop, PointInterface $rightBottom, $color, $fill = false, $thickness = 1);
+    public function rectangle(PointInterface $leftTop, PointInterface $rightBottom, $color, bool $fill = false, int $thickness = 1);
 
     /**
      * 画多边形
@@ -361,29 +362,29 @@ interface ImageAdapter {
      * @param int $thickness
      * @return static
      */
-    public function polygon(array $coordinates, $color, $fill = false, $thickness = 1);
+    public function polygon(array $coordinates, $color, bool $fill = false, int $thickness = 1);
 
     /**
-     * @param $string
+     * @param string $string
      * @param FontInterface $font
      * @param PointInterface $position
-     * @param int $angle
-     * @param null $width
+     * @param int|float $angle
+     * @param int $width
      * @return static
      */
-    public function text($string, FontInterface $font, PointInterface $position, $angle = 0, $width = null);
+    public function text(string $string, FontInterface $font, PointInterface $position, int|float $angle = 0, int $width = 0);
 
     /**
-     * @param $string
+     * @param string $string
      * @param FontInterface $font
-     * @param int $angle
+     * @param int|float $angle
      * @return BoxInterface
      */
-    public function fontSize($string, FontInterface $font, $angle = 0);
+    public function fontSize(string $string, FontInterface $font, int|float $angle = 0);
 
     public function transparent($color);
 
-    public function gamma($correction);
+    public function gamma(float $correction);
 
     public function negative();
 
@@ -393,9 +394,9 @@ interface ImageAdapter {
 
     public function sharpen();
 
-    public function blur($sigma);
+    public function blur(float $sigma = 1);
 
-    public function brightness($brightness);
+    public function brightness(float $brightness);
 
     public function convolve(Matrix $matrix);
 
