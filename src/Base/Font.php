@@ -2,6 +2,7 @@
 namespace Zodream\Image\Base;
 
 use InvalidArgumentException;
+use Zodream\Image\ImageManager;
 
 class Font implements FontInterface {
     /**
@@ -63,7 +64,7 @@ class Font implements FontInterface {
      * {@inheritdoc}
      *
      */
-    public function wrapText($string, $maxWidth, $angle = 0)
+    public function wrapText(string $string, int $maxWidth, int $angle = 0)
     {
         $string = (string) $string;
         if ($string === '') {
@@ -81,8 +82,8 @@ class Font implements FontInterface {
                 $currentLine = $word;
             } else {
                 $testLine = $currentLine . ' ' . $word;
-                $testbox = $this->box($testLine, $angle);
-                if ($testbox->getWidth() <= $maxWidth) {
+                $testBox = $this->box($testLine, $angle);
+                if ($testBox->getWidth() <= $maxWidth) {
                     $currentLine = $testLine;
                 } else {
                     $lines[] = $currentLine;
@@ -97,8 +98,7 @@ class Font implements FontInterface {
         return implode("\n", $lines);
     }
 
-    public function box($string, $angle = 0)
-    {
-        // TODO: Implement box() method.
+    public function box(string $string, int $angle = 0): Box {
+        return ImageManager::create()->fontSize($string, $this, $angle);
     }
 }

@@ -22,14 +22,15 @@ class WaterMark extends Image {
 	const LeftTop = 0;
 	const Center = 4;
 
-	/**
-	 * 根据九宫格获取坐标
-	 * @param $direction
-	 * @param int $width
-	 * @param int $height
-	 * @return array
-	 */
-	public function getPointByDirection($direction, $width = 0, $height = 0) {
+    /**
+     * 根据九宫格获取坐标
+     * @param int $direction
+     * @param int $width 水印的宽
+     * @param int $height 水印的高
+     * @param int $padding 边距
+     * @return array
+     */
+	public function getPointByDirection(int $direction, int $width = 0, int $height = 0, int $padding = 0): array {
 		if (empty($width) || empty($height)) {
 			$width = $this->instance()->getWidth() / 3;
 			$height = $this->instance()->getHeight() / 3;
@@ -40,87 +41,79 @@ class WaterMark extends Image {
 				$height
 			);
 		}
-		switch ($direction) {
-			case self::Center:
-				return array(
-					($this->instance()->getWidth() - $width) / 2,
-					($this->instance()->getHeight() - $height) / 2,
-					$width,
-					$height
-				);
-			case self::Left:
-				return array(
-					0,
-					($this->instance()->getHeight() - $height) / 2,
-					$width,
-					$height
-				);
-			case self::Top:
-				return array(
-					($this->instance()->getWidth() - $width) / 2,
-					0,
-					$width,
-					$height
-				);
-			case self::RightTop:
-				return array(
-					$this->instance()->getWidth() - $width,
-					0,
-					$width,
-					$height
-				);
-			case self::Right:
-				return array(
-					$this->instance()->getWidth() - $width,
-					($this->instance()->getHeight() - $height) / 2,
-					$width,
-					$height
-				);
-			case self::RightBottom:
-				return array(
-					$this->instance()->getWidth() - $width,
-					$this->instance()->getHeight() - $height,
-					$width,
-					$height
-				);
-			case self::Bottom:
-				return array(
-					($this->instance()->getWidth() - $width) / 2,
-					$this->instance()->getHeight() - $height,
-					$width,
-					$height
-				);
-			case self::LeftBottom:
-				return array(
-					0,
-					$this->instance()->getHeight() - $height,
-					$width,
-					$height
-				);
-
-			case self::LeftTop:
-			default:
-				return array(
-					0,
-					0,
-					$width,
-					$height
-				);
-		}
+        return match ($direction) {
+            self::Center => array(
+                ($this->instance()->getWidth() - $width) / 2,
+                ($this->instance()->getHeight() - $height) / 2,
+                $width,
+                $height
+            ),
+            self::Left => array(
+                $padding,
+                ($this->instance()->getHeight() - $height) / 2,
+                $width,
+                $height
+            ),
+            self::Top => array(
+                ($this->instance()->getWidth() - $width) / 2,
+                $padding,
+                $width,
+                $height
+            ),
+            self::RightTop => array(
+                $this->instance()->getWidth() - $width - $padding,
+                $padding,
+                $width,
+                $height
+            ),
+            self::Right => array(
+                $this->instance()->getWidth() - $width - $padding,
+                ($this->instance()->getHeight() - $height) / 2,
+                $width,
+                $height
+            ),
+            self::RightBottom => array(
+                $this->instance()->getWidth() - $width - $padding,
+                $this->instance()->getHeight() - $height - $padding,
+                $width,
+                $height
+            ),
+            self::Bottom => array(
+                ($this->instance()->getWidth() - $width) / 2,
+                $this->instance()->getHeight() - $height - $padding,
+                $width,
+                $height
+            ),
+            self::LeftBottom => array(
+                $padding,
+                $this->instance()->getHeight() - $height - $padding,
+                $width,
+                $height
+            ),
+            default => array(
+                $padding,
+                $padding,
+                $width,
+                $height
+            ),
+        };
 	}
 
     /**
      * 根据九宫格添加文字
-     * @param $text
+     * @param string $text
      * @param int $direction
      * @param int $fontSize
      * @param string $color
-     * @param int $fontFamily
+     * @param string|int $fontFamily
      * @return static
      */
-	public function addTextByDirection($text, $direction = self::Top, $fontSize = 16, $color = '#000', $fontFamily = 5) {
-		list($x, $y) = $this->getPointByDirection($direction);
-		$this->instance()->text($text, new Font($fontFamily, $fontSize, $color), new Point($x, $y));
+	public function addTextByDirection(string $text, int $direction = self::Top,
+                                       int $fontSize = 16, string $color = '#000', string|int $fontFamily = 5) {
+		$font = new Font($fontFamily, $fontSize, $color);
+        $textBox = $this->instance()->fontSize($text, $font);
+        list($x, $y) = $this->getPointByDirection($direction, $textBox->getWidth(), $textBox->getHeight());
+		$this->instance()->text($text, $font, new Point($x, $y));
         return $this;
 	}
 
@@ -135,8 +128,10 @@ class WaterMark extends Image {
      * @param int $angle 如果 $fontFamily 为 int，则不起作用
      * @return static
      */
-	public function addText($text, $x = 0, $y = 0, $fontSize = 16, $color = '#000', $fontFamily = 5, $angle = 0) {
-		$this->instance()->text($text, new Font($fontFamily, $fontSize, $color), new Point($x, $y));
+	public function addText(string $text, int $x = 0, int $y = 0,
+                            int $fontSize = 16, string $color = '#000', string|int $fontFamily = 5,
+                            int $angle = 0) {
+		$this->instance()->text($text, new Font($fontFamily, $fontSize, $color), new Point($x, $y), $angle);
 	    return $this;
 	}
 
@@ -147,7 +142,7 @@ class WaterMark extends Image {
      * @param int $opacity
      * @return static
      */
-	public function addImageByDirection($image, $direction = self::Top, $opacity = 50) {
+	public function addImageByDirection($image, int $direction = self::Top, int $opacity = 50) {
 		list($x, $y) = $this->getPointByDirection($direction);
 		return $this->addImage($image, $x, $y, $opacity);
 	}
@@ -160,7 +155,7 @@ class WaterMark extends Image {
 	 * @param int $opacity 透明度，对png图片不起作用
 	 * @return static
 	 */
-	public function addImage($image, $x = 0, $y = 0, $opacity = 50) {
+	public function addImage($image, int $x = 0, int $y = 0, int $opacity = 50) {
         if ($image instanceof Image) {
             $image = $image->instance();
         } elseif (!$image instanceof ImageAdapter) {

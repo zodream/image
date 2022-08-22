@@ -30,7 +30,7 @@ interface FontInterface {
      * @param int $angle
      *
      */
-    public function box($string, $angle = 0);
+    public function box(string $string, int $angle = 0): Box;
 
     /**
      * Split a string into multiple lines so that it fits a specific width.
@@ -41,5 +41,5 @@ interface FontInterface {
      *
      * @return string
      */
-    public function wrapText($string, $maxWidth, $angle = 0);
+    public function wrapText(string $string, int $maxWidth, int $angle = 0);
 }

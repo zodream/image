@@ -80,6 +80,30 @@ $image->save();
 
 ```
 
+<a name="water"></a>
+### 水印
+
+文字水印
+
+```php
+$image = new WaterMark();
+$image->instance()->loadResource('1.jpg');
+$image->addTextByDirection('water');
+```
+
+自定义水印
+```php
+$image = new WaterMark();
+$image->instance()->loadResource($file);
+$font = new Font((string)app_path(config('disk.font')), 12, '#fff');
+$textBox = $image->instance()->fontSize($text, $font);
+// 根据文字的尺寸获取水印的位置
+list($x, $y) = $image->getPointByDirection(WaterMark::RightTop, $textBox->getWidth(), $textBox->getHeight(), 20);
+// 给文字添加阴影
+$image->addText($text, $x + 2, $y + 2, $font->getSize(), '#777', $font->getFile());
+$image->addText($text, $x, $y, $font->getSize(), $font->getColor(), $font->getFile());
+```
+
 <a name="slider"></a>
 ### 滑动验证码
 
