@@ -8,14 +8,14 @@
         {
             "name" : "Jason Zou",
             "email" : "zodream@fixmail.com",
-            "homepage" : "http://www.zodream.cn/",
+            "homepage" : "https://www.zodream.cn/",
             "role" : "Developer"
         }
     ],
     "require": {
-        "php": ">=8.0",
-        "khanamiryan/qrcode-detector-decoder": "^1.0",
-        "bacon/bacon-qr-code": "^2.0"
+        "php": ">=8.1",
+        "khanamiryan/qrcode-detector-decoder": "^2.0.2",
+        "bacon/bacon-qr-code": "^2.0.8"
     },
     "suggest": {
         "ext-gd": "*",
