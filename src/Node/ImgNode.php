@@ -1,6 +1,8 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image\Node;
 
+use Zodream\Disk\File;
 use Zodream\Image\Adapters\ImageAdapter;
 use Zodream\Image\Base\Box;
 use Zodream\Image\Base\Point;
@@ -12,14 +14,14 @@ class ImgNode extends BaseNode {
     /**
      * @var string
      */
-    protected $src;
+    protected string $src = '';
 
     /**
-     * @var ImageAdapter
+     * @var ImageAdapter|null
      */
-    protected $image;
+    protected ?ImageAdapter $image = null;
 
-    public function __construct($src, array $properties = []) {
+    public function __construct(string $src, array $properties = []) {
         $this->setSrc($src);
         $this->setStyles($properties);
     }
@@ -41,13 +43,13 @@ class ImgNode extends BaseNode {
         return $this->image;
     }
 
-    protected function refreshSize(array $styles, $parentInnerWidth, array $parentStyles) {
+    protected function refreshSize(array $styles, int $parentInnerWidth, array $parentStyles): array {
         $styles['width'] = $this->getWidth($parentStyles);
         $styles['height'] = $this->getHeight($parentStyles);
         return parent::refreshSize($styles, $parentInnerWidth, $parentStyles);
     }
 
-    public function refreshAsBackground(array $parentStyles) {
+    public function refreshAsBackground(array $parentStyles): void {
         if (isset($this->styles['full'])) {
             $this->computed['width'] = $parentStyles['width'];
             $this->computed['height'] = $parentStyles['height'];
@@ -61,7 +63,7 @@ class ImgNode extends BaseNode {
         }
     }
 
-    public function outerHeight() {
+    public function outerHeight(): int {
         return $this->computed['outerHeight'];
     }
 
@@ -85,15 +87,14 @@ class ImgNode extends BaseNode {
             && is_numeric($this->styles['width'])) {
             return $this->styles['width'] * $this->getImage()->getHeight() / $this->getImage()->getWidth();
         }
-        $width = NodeHelper::width(isset($this->styles['height'])
-            ? $this->styles['height'] : null, $properties, 'height');
+        $width = NodeHelper::width($this->styles['height'] ?? null, $properties, 'height');
         if (!empty($width)) {
             return $width;
         }
         return $this->getImage()->getHeight();
     }
 
-    public function draw(Image $box = null) {
+    public function draw(Image $box): void {
         $img = $this->getImage();
         if ($img->getWidth() != $this->computed['width'] || $img->getHeight() != $this->computed['height']) {
             $img = clone $this->getImage();
@@ -102,7 +103,12 @@ class ImgNode extends BaseNode {
         $box->instance()->paste($img, new Point($this->computed['x'], $this->computed['y']));
     }
 
-    public static function create($src, array $properties = []) {
-        return (new static($src))->setStyles($properties);
+    /**
+     * @param string|File $src
+     * @param array{width: int, height: int, center: bool} $properties
+     * @return ImgNode
+     */
+    public static function create(string|File $src, array $properties = []) {
+        return (new static((string)$src))->setStyles($properties);
     }
 }

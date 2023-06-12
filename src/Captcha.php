@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image;
 /**
  * 验证码
@@ -19,20 +20,20 @@ class Captcha extends Image {
     const SESSION_KEY = 'captcha';
 
     protected $configKey = 'captcha';
-    protected $width;
-    protected $height;
+    protected int $width;
+    protected int $height;
 
     /**
      * @var string 验证码结果
      */
-    protected $code;
+    protected string $code;
 
     /**
      * @var array 验证码图片内容字符串
      */
-    protected $chars = [];
+    protected array $chars = [];
 
-    protected $configs = [
+    protected array $configs = [
         'characters' => 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', //随机因子
         'length' => 4,    //验证码长度
         'fontSize' => 0,   //指定字体大小
@@ -67,7 +68,7 @@ class Captcha extends Image {
      * @return $this
      * @throws \Exception
      */
-    public function generate($level = 0) {
+    public function generate(int $level = 0) {
         $this->getCode();
         $this->loadConfigs();
         $this->width = $this->configs['width'];
@@ -86,7 +87,7 @@ class Captcha extends Image {
      * @return $this
      * @throws \Exception
      */
-    public function createCode($setSession = true) {
+    public function createCode(bool $setSession = true) {
         list($this->code, $this->chars) = $this->configs['mode'] == 1
             ? $this->generateFormula() : $this->generateRandomChar();
         if ($setSession) {
@@ -98,7 +99,7 @@ class Captcha extends Image {
         return $this;
     }
 
-    protected function generateRandomChar() {
+    protected function generateRandomChar(): array {
         $charset = $this->configs['characters'];
         $_len   = strlen($charset) - 1;
         $count = intval($this->configs['length']);
@@ -109,7 +110,7 @@ class Captcha extends Image {
         return [implode('', $chars), $chars];
     }
 
-    protected function generateFormula() {
+    protected function generateFormula(): array {
         $tags = is_numeric($this->configs['fontFamily']) ?
             ['+', '-', '*', '/'] : ['加', '减', '乘', '除'];
         $tag = mt_rand(0, 3);
@@ -138,7 +139,7 @@ class Captcha extends Image {
     /**
      * 生成背景
      */
-    protected function createBg() {
+    protected function createBg(): void {
         $this->instance()->create(new Box($this->width, $this->height),
             [mt_rand(157, 255), mt_rand(157, 255), mt_rand(157, 255)]);
     }
@@ -146,11 +147,11 @@ class Captcha extends Image {
     /**
      * 生成文字
      */
-    protected function createText() {
+    protected function createText(): void {
         $length = count($this->chars);
         $width = $this->width / ($length + 1);
         $left = $width * .5;
-        $maxHeight = $this->height - $left;
+        $maxHeight = (int)($this->height - $left);
         for ($i = 0; $i < $length; $i ++) {
             $size = $this->fontSize();
             $angle = $size > $this->height  ? 0 : $this->angle();
@@ -158,7 +159,7 @@ class Captcha extends Image {
             $this->instance()->text(
                 $this->chars[$i],
                  new Font($this->configs['fontFamily'], $size, $this->fontColor($i)),
-                 new Point($left + $width * $i,
+                 new Point((int)($left + $width * $i),
                      $height > $maxHeight
                          ? $height : mt_rand($height, $maxHeight)),
                 $angle
@@ -170,14 +171,14 @@ class Captcha extends Image {
      *
      * @return int
      */
-    protected function angle() {
+    protected function angle(): int {
         if (empty($this->configs['angle'])) {
             return mt_rand(-30, 30);
         }
         return mt_rand(-1 * $this->configs['angle'], $this->configs['angle']);
     }
 
-    protected function fontSize() {
+    protected function fontSize(): int {
         if (!empty($this->configs['fontSize'])) {
             return $this->configs['fontSize'];
         }
@@ -189,7 +190,7 @@ class Captcha extends Image {
      * @param integer $i
      * @return array|mixed
      */
-    protected function fontColor(int $i) {
+    protected function fontColor(int $i): mixed {
         if (empty($this->configs['fontColor'])) {
             return [mt_rand(0, 156), mt_rand(0, 156), mt_rand(0, 156)];
         }
@@ -206,7 +207,7 @@ class Captcha extends Image {
      * 生成线条、雪花
      * @param int $level
      */
-    protected function createLine($level = 1) {
+    protected function createLine(int $level = 1) {
         //线条
         for ($i = 0; $i < 6; $i ++) {
             $this->instance()->line(
@@ -233,7 +234,7 @@ class Captcha extends Image {
      * @return bool
      * @throws \Exception
      */
-    public function verify($value) {
+    public function verify(string $value): bool {
         if (!session()->has(self::SESSION_KEY)) {
             return false;
         }

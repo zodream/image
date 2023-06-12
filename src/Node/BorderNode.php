@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image\Node;
 
 use Zodream\Image\Base\Point;
@@ -6,16 +7,11 @@ use Zodream\Image\Image;
 
 class BorderNode extends BaseNode {
 
-    /**
-     * @var BaseNode
-     */
-    protected $content;
-
-    public function __construct($content = null) {
-        $this->content = $content;
+    public function __construct(
+        protected ?BaseNode $content = null) {
     }
 
-    protected function refreshSize(array $styles, $parentInnerWidth, array $parentStyles) {
+    protected function refreshSize(array $styles, int $parentInnerWidth, array $parentStyles): array {
         if (!$this->content) {
             $styles['width'] = isset($styles['width']) ?
                 NodeHelper::width($styles['width'], $parentStyles) : $parentInnerWidth;
@@ -28,16 +24,14 @@ class BorderNode extends BaseNode {
                 'x' => $styles['x'] + $styles['padding'][3],
                 'y' => $styles['y'] + $styles['padding'][0],
             ]));
-            $styles['width'] = isset($styles['width'])
-                ? $styles['width'] : $this->content->computedStyle('outerWidth');
-            $styles['height'] = isset($styles['height'])
-                ? $styles['height'] : $this->content->computedStyle('outerHeight');
+            $styles['width'] = $styles['width'] ?? $this->content->computedStyle('outerWidth');
+            $styles['height'] = $styles['height'] ?? $this->content->computedStyle('outerHeight');
         }
         $styles['radius'] = NodeHelper::padding($styles, 'radius');
         return parent::refreshSize($styles, $parentInnerWidth, $parentStyles);
     }
 
-    public function draw(Image $box = null) {
+    public function draw(Image $box): void {
         $startX = $this->computed['x'];
         $startY = $this->computed['y'];
         $endX = $startX + $this->computed['width'];
@@ -84,7 +78,12 @@ class BorderNode extends BaseNode {
         $this->content->draw($box);
     }
 
-    public static function create($content, array $properties = []) {
+    /**
+     * @param array|BaseNode|null $content
+     * @param array{size: int, fixed: bool, margin: int} $properties
+     * @return BaseNode
+     */
+    public static function create(array|BaseNode|null $content, array $properties = []): BaseNode {
         if (is_array($content)) {
             list($content, $properties) = [null, $content];
         }

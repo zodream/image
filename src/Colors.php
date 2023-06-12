@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image;
 
 
@@ -7,7 +8,7 @@ use Exception;
 
 class Colors {
 
-    private static $maps = [
+    private static array $maps = [
         'AliceBlue' => '240,248,255',
         'LightSalmon' => '255,160,122',
         'AntiqueWhite' => '250,235,215',
@@ -150,7 +151,7 @@ class Colors {
         'YellowGreen' => '154,205,50',
     ];
 
-    public static function converter($color) {
+    public static function converter(mixed $color): int|string|array {
         if (func_num_args() == 1 && is_int($color)) {
             return $color;
         }
@@ -160,7 +161,7 @@ class Colors {
         if (is_array($color) && count($color) >= 3) {
             return $color;
         }
-        if (is_string($color) && substr($color, 0, 1) === '#') {
+        if (is_string($color) && str_starts_with($color, '#')) {
             return static::transformRGB($color);
         }
         $name = Str::studly((string)$color);
@@ -176,7 +177,7 @@ class Colors {
         );
     }
 
-    public static function transformRGB($color = '#000000') {
+    public static function transformRGB(string $color = '#000000'): array {
         if (strlen($color) == 4) {
             $red = substr($color, 1, 1);
             $green = substr($color, 2, 1);

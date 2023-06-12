@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image;
 
 use Zodream\Image\Adapters\AbstractImage;
@@ -9,7 +10,7 @@ use Zodream\Image\Adapters\Imagick;
 
 final class ImageManager {
 
-    private static $map = [
+    private static array $map = [
         'gd' => Gd::class,
         'gd2' => Gd::class,
         'imagick' => Imagick::class,
@@ -18,9 +19,9 @@ final class ImageManager {
 
     /**
      * @param string $driver
-     * @return ImageAdapter|AbstractImage
+     * @return ImageAdapter
      */
-    public static function create(string $driver = '') {
+    public static function create(string $driver = ''): ImageAdapter {
         if (empty($driver)) {
             $driver = config('image.driver', 'gd');
         }

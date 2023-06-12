@@ -263,6 +263,6 @@ $box = BoxNode::create([
         'color' => 'black'
     ])
 );
-$box->draw()->show();
+$box->beginDraw()->show();
 
 ```

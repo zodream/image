@@ -10,32 +10,31 @@ class Matrix {
      *
      * @var int[]|float[]
      */
-    protected $elements = array();
+    protected array $elements = array();
 
     /**
      * The matrix width.
      *
      * @var int
      */
-    protected $width;
+    protected int $width;
 
     /**
      * The matrix height.
      *
      * @var int
      */
-    protected $height;
+    protected int $height;
 
     /**
      * The given $elements get arranged as follows: The elements will be set from left to right in a row until the
      * row is full. Then, the next line begins alike and so on.
      *
-     * @param int $width the matrix width
-     * @param int $height he matrix height
+     * @param float|int $width the matrix width
+     * @param float|int $height he matrix height
      * @param int[]|float[] $elements the matrix elements
-     *
      */
-    public function __construct($width, $height, $elements = array())
+    public function __construct(float|int $width, float|int $height, array $elements = array())
     {
         $this->width = (int) round($width);
         if ($this->width < 1) {

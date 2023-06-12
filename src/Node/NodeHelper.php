@@ -1,12 +1,12 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image\Node;
 
-use phpDocumentor\Reflection\Types\This;
 use Zodream\Helpers\Str;
 
 class NodeHelper {
 
-    public static function padding(array $properties, $key = 'padding') {
+    public static function padding(array $properties, string $key = 'padding') {
         $formatVal = function (array $data) use ($key, $properties) {
             $map = $key === 'radius' ?
                 ['top-left', 'top-right', 'bottom-right', 'bottom-left']
@@ -97,7 +97,7 @@ class NodeHelper {
         }
     }
 
-    public static function orDefault($key, array $args, array $args1, $default = 0) {
+    public static function orDefault($key, array $args, array $args1, mixed $default = 0): mixed {
         if (isset($args[$key])) {
             return $args[$key];
         }

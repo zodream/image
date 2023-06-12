@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image\Node;
 
 use Zodream\Image\Adapters\ImageAdapter;
@@ -12,7 +13,7 @@ class BoxNode extends BaseNode {
     /**
      * @var BaseNode[]
      */
-    protected $children = [];
+    protected array $children = [];
 
     public function append(...$nodes) {
         if (func_num_args() === 1 && is_array($nodes[0])) {
@@ -23,7 +24,7 @@ class BoxNode extends BaseNode {
         return $this;
     }
 
-    protected function refreshSize(array $styles, $parentInnerWidth, array $parentStyles) {
+    protected function refreshSize(array $styles, $parentInnerWidth, array $parentStyles): array {
         $styles = parent::refreshSize($styles, $parentInnerWidth, $parentStyles);
         $styles['parentX'] = $styles['x'];
         $styles['parentY'] = $styles['y'];
@@ -53,18 +54,7 @@ class BoxNode extends BaseNode {
         return $styles;
     }
 
-    public function draw(Image $box = null) {
-        if (empty($box)) {
-            $this->refresh([
-                'color' => '#000',
-                'font-size' => 16
-            ]);
-            $box = new Image();
-            $box->instance()->create(new Box($this->computed['outerWidth'], $this->computed['outerHeight']));
-            if (!isset($this->computed['background'])) {
-                $this->computed['background'] = '#fff';
-            }
-        }
+    public function draw(Image $box): void {
         if (isset($this->computed['background'])) {
             $x = $this->computed['x'];
             $y = $this->computed['y'];
@@ -80,10 +70,27 @@ class BoxNode extends BaseNode {
         foreach ($this->children as $node) {
             $node->draw($box);
         }
+    }
+
+    /**
+     * 从这里开始画
+     * @return Image
+     */
+    public function beginDraw(): Image {
+        $this->refresh([
+            'color' => '#000',
+            'font-size' => 16
+        ]);
+        $box = new Image();
+        $box->instance()->create(new Box($this->computed['outerWidth'], $this->computed['outerHeight']));
+        if (!isset($this->computed['background'])) {
+            $this->computed['background'] = '#fff';
+        }
+        $this->draw($box);
         return $box;
     }
 
-    protected function drawFill(Image $box, $color, $x, $y, $width, $height, $radius) {
+    protected function drawFill(Image $box, string $color, int $x, int $y, int $width, int $height, float|int $radius): void {
         if ($this->isEmpty($radius)) {
             $box->instance()->fill($color);
             return;
@@ -145,7 +152,7 @@ class BoxNode extends BaseNode {
         });
     }
 
-    protected function isBoxInner($x, $y, $width, $height, $radius) {
+    protected function isBoxInner($x, $y, $width, $height, $radius): bool {
         if ($radius[0] > 0) {
             if ($x < $radius[0] && $y < $radius[0]) {
                 return pow($radius[0] - $x, 2) + pow($radius[0] - $y, 2)
@@ -173,7 +180,7 @@ class BoxNode extends BaseNode {
         return $x > 0 && $x < $width && $y > 0 && $y < $height;
     }
 
-    protected function isEmpty($data) {
+    protected function isEmpty($data): bool {
         if (empty($data)) {
             return true;
         }
@@ -186,14 +193,14 @@ class BoxNode extends BaseNode {
     }
 
     /**
-     * @param array $properties
+     * @param array{padding: int, background: string, width: int} $properties
      * @return BoxNode
      */
     public static function create(array $properties = []) {
         return (new static())->setStyles($properties);
     }
 
-    public static function parse($content) {
+    public static function parse(string $content): BoxNode {
         $lines = explode(PHP_EOL, ltrim($content));
         // 修复linux换行符
         if (preg_match('/^\[(.+)\]$/', trim($lines[0]), $match)) {
@@ -208,7 +215,7 @@ class BoxNode extends BaseNode {
         return $box;
     }
 
-    protected static function parseNode($content) {
+    protected static function parseNode(string $content): BaseNode {
         if (!preg_match('/^\[(.+)\](.*)$/', $content, $match)) {
             return TextNode::create($content);
         }
@@ -219,13 +226,13 @@ class BoxNode extends BaseNode {
         return TextNode::create($match[2], $properties);
     }
 
-    protected static function parseProperties($content) {
+    protected static function parseProperties(string $content): array {
         $properties = [];
         foreach (explode(' ', $content) as $line) {
             $args = explode('=', $line, 2);
             if (count($args) === 1) {
                 $args[1] = true;
-                if (strpos($args[0], '!') === 0) {
+                if (str_starts_with($args[0], '!')) {
                     $args[1] = false;
                     $args[0] = substr($args[0], 1);
                 }
@@ -236,7 +243,7 @@ class BoxNode extends BaseNode {
         return $properties;
     }
 
-    protected static function parseVal($val) {
+    protected static function parseVal(mixed $val): mixed {
         if (is_numeric($val)) {
             return $val;
         }
@@ -244,7 +251,7 @@ class BoxNode extends BaseNode {
             return true;
         }
         if ($val === 'false') {
-            return $val;
+            return false;
         }
         return $val;
     }

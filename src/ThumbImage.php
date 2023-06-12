@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image;
 
 use Zodream\Image\Base\Box;
@@ -17,7 +18,7 @@ class ThumbImage extends Image {
 	 * @param bool|int $auto 那种方式进行缩略处理
 	 * @return string
 	 */
-	public function thumb($output, $thumbWidth = 0, $thumbHeight = 0, $auto = true){
+	public function thumb(string $output, int $thumbWidth = 0, int $thumbHeight = 0, bool $auto = true){
 		$width = $this->instance()->getWidth();
 		$height = $this->instance()->getHeight();
 		if ($thumbWidth <= 0) {

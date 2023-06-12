@@ -8,14 +8,14 @@ class Font implements FontInterface {
     /**
      * @var string
      */
-    protected $file;
+    protected string|int $file;
 
     /**
      * @var int
      */
-    protected $size;
+    protected int $size;
 
-    protected $color;
+    protected string $color;
 
     /**
      * Constructs a font with specified $file, $size and $color.
@@ -26,7 +26,7 @@ class Font implements FontInterface {
      * @param int $size
      * @param mixed $color
      */
-    public function __construct($file, $size, $color)
+    public function __construct(mixed $file, int $size, string|array $color)
     {
         $this->file = is_string($file) ? $file : intval($file);
         $this->size = $size;
@@ -46,7 +46,7 @@ class Font implements FontInterface {
      * {@inheritdoc}
      *
      */
-    final public function getSize()
+    final public function getSize(): int
     {
         return $this->size;
     }
@@ -64,7 +64,7 @@ class Font implements FontInterface {
      * {@inheritdoc}
      *
      */
-    public function wrapText(string $string, int $maxWidth, int $angle = 0)
+    public function wrapText(string $string, int $maxWidth, int $angle = 0): string
     {
         $string = (string) $string;
         if ($string === '') {

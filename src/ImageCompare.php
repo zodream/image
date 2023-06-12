@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image;
 
 class ImageCompare extends Image {
@@ -7,7 +8,7 @@ class ImageCompare extends Image {
      * @param Image $image
      * @return bool
      */
-	public function compare(Image $image) {
+	public function compare(Image $image): bool {
 		$hash1 = $this->getHashValue();
 		$hash2 = $image->getHashValue();
 		if (strlen($hash1) !== strlen($hash2)) {

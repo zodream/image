@@ -9,12 +9,12 @@ final class Box implements BoxInterface
     /**
      * @var int
      */
-    private $width;
+    private int $width;
 
     /**
      * @var int
      */
-    private $height;
+    private int $height;
 
     public function __construct($width, $height) {
         if (!\is_int($width)) {
@@ -30,44 +30,44 @@ final class Box implements BoxInterface
         }
     }
 
-    public function getWidth() {
+    public function getWidth(): int {
         return $this->width;
     }
 
-    public function getHeight() {
+    public function getHeight(): int {
         return $this->height;
     }
 
-    public function scale($ratio) {
+    public function scale(float|int $ratio) {
         $width = max(1, round($ratio * $this->width));
         $height = max(1, round($ratio * $this->height));
 
         return new self($width, $height);
     }
 
-    public function increase($size) {
-        return new self((int) $size + $this->width, (int) $size + $this->height);
+    public function increase(int $size) {
+        return new self($size + $this->width,  $size + $this->height);
     }
 
-    public function contains(BoxInterface $box, PointInterface $start = null) {
+    public function contains(BoxInterface $box, ?PointInterface $start = null): bool {
         $start = $start ? $start : new Point(0, 0);
 
         return $start->in($this) && $this->width >= $box->getWidth() + $start->getX() && $this->height >= $box->getHeight() + $start->getY();
     }
 
-    public function square() {
+    public function square(): int {
         return $this->width * $this->height;
     }
 
-    public function __toString() {
+    public function __toString(): string {
         return sprintf('%dx%d px', $this->width, $this->height);
     }
 
-    public function widen($width) {
+    public function widen(int $width) {
         return $this->scale($width / $this->width);
     }
 
-    public function heighten($height) {
+    public function heighten(int $height) {
         return $this->scale($height / $this->height);
     }
 }

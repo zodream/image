@@ -3,19 +3,10 @@ namespace Zodream\Image\Base;
 
 
 final class Point implements PointInterface {
-    /**
-     * @var int
-     */
-    private $x;
 
-    /**
-     * @var int
-     */
-    private $y;
-
-    public function __construct(int $x, int $y) {
-        $this->x = $x;
-        $this->y = $y;
+    public function __construct(
+        private readonly int $x,
+        private readonly int $y) {
     }
 
     public function getX(): int {
@@ -26,15 +17,15 @@ final class Point implements PointInterface {
         return $this->y;
     }
 
-    public function in(BoxInterface $box) {
+    public function in(BoxInterface $box): bool {
         return $this->x < $box->getWidth() && $this->y < $box->getHeight();
     }
 
-    public function move($amount) {
+    public function move(int $amount): PointInterface {
         return new self($this->x + $amount, $this->y + $amount);
     }
 
-    public function __toString() {
+    public function __toString(): string {
         return sprintf('(%d, %d)', $this->x, $this->y);
     }
 }

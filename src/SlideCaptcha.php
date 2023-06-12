@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image;
 
 use Zodream\Image\Adapters\ImageAdapter;
@@ -10,26 +11,26 @@ class SlideCaptcha extends Image {
     /**
      * @var integer[]
      */
-    protected $point;
+    protected array $point = [];
 
-    protected $alpha = .5;
-
-    /**
-     * @var ImageAdapter
-     */
-    protected $shapeImage;
+    protected float $alpha = .5;
 
     /**
      * @var ImageAdapter
      */
-    protected $slideImage;
+    protected ?ImageAdapter $shapeImage = null;
 
-    public function setAlpha($alpha) {
+    /**
+     * @var ImageAdapter
+     */
+    protected ?ImageAdapter $slideImage = null;
+
+    public function setAlpha(float $alpha) {
         $this->alpha = $alpha;
         return $this;
     }
 
-    public function setShape($shape) {
+    public function setShape(mixed $shape) {
         if ($shape instanceof Image) {
             $shape = $shape->instance();
         } elseif (!$shape instanceof ImageAdapter) {
@@ -39,7 +40,7 @@ class SlideCaptcha extends Image {
         return $this;
     }
 
-    public function setPoint($x, $y) {
+    public function setPoint(int $x, int $y) {
         $this->point = [$x, $y];
         return $this;
     }
@@ -47,22 +48,22 @@ class SlideCaptcha extends Image {
     /**
      * @return integer[]
      */
-    public function getPoint() {
+    public function getPoint(): array {
         return $this->point;
     }
 
     /**
      * @return ImageAdapter
      */
-    public function getSlideImage() {
+    public function getSlideImage(): ImageAdapter {
         return $this->slideImage;
     }
 
-    public function generate() {
+    public function generate(): void {
         $this->drawBox();
     }
 
-    public function drawBox() {
+    public function drawBox(): void {
         $width = $this->shapeImage->getWidth();
         $height = $this->shapeImage->getHeight();
         if (empty($this->point)) {
@@ -96,11 +97,11 @@ class SlideCaptcha extends Image {
 
     /**
      * 是否是有效的区域
-     * @param $x
-     * @param $y
+     * @param int $x
+     * @param int $y
      * @return true
      */
-    public function isValidBound($x, $y) {
+    public function isValidBound(int $x, int $y): bool {
         list($r, $g, $b) = $this->shapeImage->converterFromColor(
             $this->shapeImage->getColorAt(new Point($x, $y)));
         return $r < 240 || $g < 240 || $b < 240;
@@ -112,7 +113,7 @@ class SlideCaptcha extends Image {
      * @param int $rows 多少层 默认2层
      * @return array [Image, point[], [width, height]]
      */
-    public function sortBy($args, $rows = 2) {
+    public function sortBy(array $args, int $rows = 2): array {
         if (!is_array($args)) {
             $args = func_get_args();
             $rows = 2;

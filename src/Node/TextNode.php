@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image\Node;
 
 
@@ -15,15 +16,15 @@ class TextNode extends BaseNode {
     /**
      * @var string
      */
-    protected $content;
+    protected string $content = '';
     /**
      * @var ImageAdapter
      */
-    protected $tmpImage;
+    protected ?ImageAdapter $tmpImage = null;
     /**
      * @var FontInterface
      */
-    protected $font;
+    protected ?FontInterface $font = null;
 
     public function __construct($content) {
         $this->text($content);
@@ -42,15 +43,15 @@ class TextNode extends BaseNode {
     }
 
     /**
-     * @param $content
+     * @param string $content
      * @return $this
      */
-    public function text($content) {
+    public function text(string $content) {
         $this->content = $content;
         return $this;
     }
 
-    protected function refreshSize(array $styles, $parentInnerWidth, array $parentStyles)
+    protected function refreshSize(array $styles, int $parentInnerWidth, array $parentStyles): array
     {
         $innerWidth = !isset($styles['width']) || $styles['width'] === 'auto' ? $parentInnerWidth :
             ($this->styles['width'] - $styles['padding'][1] - $styles['padding'][3]);
@@ -61,7 +62,7 @@ class TextNode extends BaseNode {
         $styles['color'] = NodeHelper::orDefault('color', $styles, $parentStyles, '#333');
         $styles['font'] = NodeHelper::orDefault('font', $styles, $parentStyles, 1);
 
-        if (strpos($styles['font'], '@') === 0) {
+        if (str_starts_with($styles['font'], '@')) {
             $styles['font'] = $parentStyles[substr($styles['font'], 1)];
         }
         $this->font = new Font($styles['font'], $styles['font-size'],
@@ -76,7 +77,7 @@ class TextNode extends BaseNode {
         return parent::refreshSize($styles, $parentInnerWidth, $parentStyles);
     }
 
-    public function draw(Image $box = null) {
+    public function draw(Image $box): void {
         // $space = ($this->computed['font-size'] + $this->computed['letterSpace']) / 2;
         $lineSpace = $this->computed['font-size'] + $this->computed['lineSpace'];
         $x = $this->innerX();
@@ -99,7 +100,7 @@ class TextNode extends BaseNode {
         }
     }
 
-    protected function getLines($maxWidth) {
+    protected function getLines(int $maxWidth): array {
         if (!$this->isWrap()) {
             return [
                 [$this->content],
@@ -133,7 +134,12 @@ class TextNode extends BaseNode {
         return $box->getWidth();
     }
 
-    public static function create($content, array $properties = []) {
+    /**
+     * @param string $content
+     * @param array{size: int, color: string, letterSpace: int, lineSpace: int, wrap: bool, font: FontInterface, center: bool} $properties
+     * @return TextNode
+     */
+    public static function create(string $content, array $properties = []) {
         return (new static($content))->setStyles($properties);
     }
 }

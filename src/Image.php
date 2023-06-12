@@ -26,7 +26,7 @@ class Image {
         return $this->resource->getRealType();
     }
 	
-	public function getHashValue() {
+	public function getHashValue(): string {
 		$w = 8;
 		$h = 8;
 		$image = clone $this->instance();
@@ -66,7 +66,7 @@ class Image {
 	 * @param string $type
 	 * @return bool
 	 */
-    public function saveAs($output = null, string $type = '') {
+    public function saveAs(?string $output = null, string $type = '') {
         $this->instance()->saveAs($output, $type);
     }
 

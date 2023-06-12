@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image\Node;
 
 use Zodream\Image\Image;
@@ -9,13 +10,13 @@ abstract class BaseNode {
      * 设置的属性
      * @var array
      */
-    protected $styles = [];
+    protected array $styles = [];
 
     /**
      * 生成的属性
      * @var array
      */
-    protected $computed = [];
+    protected array $computed = [];
 
 
     /**
@@ -30,11 +31,11 @@ abstract class BaseNode {
 
     /**
      * 设置属性
-     * @param $name
+     * @param string $name
      * @param $value
      * @return $this
      */
-    public function style($name, $value) {
+    public function style(string $name, mixed $value) {
         $this->styles[$name] = $value;
         $this->computed = [];
         return $this;
@@ -45,39 +46,39 @@ abstract class BaseNode {
      * @param $name
      * @return mixed|null
      */
-    public function computedStyle($name) {
-        return isset($this->computed[$name]) ? $this->computed[$name] : null;
+    public function computedStyle(string $name): mixed {
+        return $this->computed[$name] ?? null;
     }
 
-    public function getTop() {
+    public function getTop(): int {
         return $this->computed['y']
             - $this->computed['margin'][0];
     }
 
-    public function getLeft() {
+    public function getLeft(): int {
         return $this->computed['x'] - $this->computed['margin'][3];
     }
 
-    public function getRight() {
+    public function getRight(): int {
         return $this->computed['x'] + $this->computed['width']
             + $this->computed['margin'][1];
     }
 
-    public function getBottom() {
+    public function getBottom(): int {
         return $this->computed['y'] + $this->computed['height'] + $this->computed['margin'][2];
     }
 
-    public function innerX() {
+    public function innerX(): int {
         return $this->computed['x']
             + $this->computed['padding'][3];
     }
 
-    public function innerY() {
+    public function innerY(): int {
         return $this->computed['y']
             + $this->computed['padding'][0];
     }
 
-    protected function isFlow() {
+    protected function isFlow(): bool {
         return isset($this->computed['position']) &&
             ($this->computed['position'] === 'absolute' ||
                 $this->computed['position'] === 'fixed');
@@ -87,7 +88,10 @@ abstract class BaseNode {
      * 获取元素在父元素的占位高度
      * @return int
      */
-    public function placeholderHeight() {
+    public function placeholderHeight(): int {
+        if (array_key_exists('placeholderHeight', $this->computed)) {
+            return $this->computed['placeholderHeight'];
+        }
         return $this->isFlow() ?
             0 : $this->computed['outerHeight'];
     }
@@ -96,16 +100,16 @@ abstract class BaseNode {
      * 重新计算属性
      * @param array $parentStyles
      */
-    public function refresh(array $parentStyles) {
+    public function refresh(array $parentStyles): void {
         $styles = $this->styles;
         if (!isset($parentStyles['viewWidth'])) {
             $parentStyles['viewWidth'] = $styles['width'];
-            $parentStyles['viewHeight'] = isset($styles['height']) ? $styles['height'] : 0;
+            $parentStyles['viewHeight'] = $styles['height'] ?? 0;
         }
         $styles['padding'] = NodeHelper::padding($styles);
         $styles['margin'] = NodeHelper::padding($styles, 'margin');
-        $styles['baseX'] = isset($parentStyles['x']) ? $parentStyles['x'] : 0;
-        $styles['baseY'] = isset($parentStyles['y']) ? $parentStyles['y'] : 0;
+        $styles['baseX'] = $parentStyles['x'] ?? 0;
+        $styles['baseY'] = $parentStyles['y'] ?? 0;
         $copyKeys = ['color', 'font-size', 'font', 'viewWidth', 'viewHeight', 'parentX', 'parentY'];
         foreach ($copyKeys as $key) {
             if (isset($styles[$key])) {
@@ -116,7 +120,7 @@ abstract class BaseNode {
             }
         }
         $styles = $this->refreshPosition($styles, $parentStyles);
-        $parentInnerWidth = isset($parentStyles['innerWidth']) ? $parentStyles['innerWidth'] : $styles['width'];
+        $parentInnerWidth = $parentStyles['innerWidth'] ?? $styles['width'];
         $styles = $this->refreshSize($styles, $parentInnerWidth, $parentStyles);
         if (isset($styles['center'])) {
             $styles['x'] = ($parentStyles['outerWidth'] - $styles['width']) / 2;
@@ -124,7 +128,7 @@ abstract class BaseNode {
         $this->computed = $styles;
     }
 
-    protected function refreshPosition(array $styles, array $parentStyles) {
+    protected function refreshPosition(array $styles, array $parentStyles): array {
         if (isset($styles['fixed'])) {
             $styles['position'] = 'fixed';
         }
@@ -136,9 +140,9 @@ abstract class BaseNode {
             $styles['x'] = (isset($parentStyles['brother']) ?
                     $parentStyles['brother']->getRight() : 0) + $styles['margin'][3];
             $styles['y'] = (isset($parentStyles['brother']) ? $parentStyles['brother']->getTop() : 0) + $styles['margin'][0];
-            $styles['position'] = isset($styles['position']) ? $styles['position'] : 'absolute';
+            $styles['position'] = $styles['position'] ?? 'absolute';
         } else {
-            $styles['x'] = (isset($parentStyles['x']) ? $parentStyles['x'] : 0)
+            $styles['x'] = ($parentStyles['x'] ?? 0)
                 + $styles['margin'][1];
         }
         if (!isset($styles['y'])) {
@@ -146,18 +150,18 @@ abstract class BaseNode {
                 $styles['y'] = (isset($parentStyles['brother']) ? $parentStyles['brother']->getBottom() : 0)
                     + $styles['margin'][0];
             } else {
-                $styles['y'] = (isset($parentStyles['y']) ? $parentStyles['y'] : 0)
+                $styles['y'] = ($parentStyles['y'] ?? 0)
                     + $styles['margin'][0];
             }
         } elseif (isset($this->styles['y'])) {
-            $styles['y'] += (isset($parentStyles['parentY']) ? $parentStyles['parentY'] : 0)
+            $styles['y'] += ($parentStyles['parentY'] ?? 0)
                 + $styles['margin'][0];
         }
 
         return $styles;
     }
 
-    protected function refreshSize(array $styles, $parentInnerWidth, array $parentStyles) {
+    protected function refreshSize(array $styles, int $parentInnerWidth, array $parentStyles): array {
         if (isset($styles['width'])) {
             $styles['outerWidth'] = $styles['width'] + $styles['margin'][1] + $styles['margin'][3];
         } else {
@@ -175,8 +179,7 @@ abstract class BaseNode {
 
     /**
      * 绘制元素
-     * @param Image|null $box
-     * @return mixed
+     * @param Image $box
      */
-    abstract public function draw(Image $box = null);
+    abstract public function draw(Image $box): void;
 }

@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image\Adapters;
 
 use Zodream\Disk\File;

@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image;
 
 use Zodream\Image\Base\Box;
@@ -18,7 +19,7 @@ class Ico extends Image {
      * @param bool $isApplication
      * @return int[]
      */
-    public function getSizes($isApplication = true) {
+    public function getSizes(bool $isApplication = true): array {
         return $isApplication ? [256, 128, 64, 48, 32, 24, 16] :
             [256, 128, 96, 64, 48, 40, 32, 24, 22, 20, 16, 14, 10, 8];
     }

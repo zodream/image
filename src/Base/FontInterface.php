@@ -15,7 +15,7 @@ interface FontInterface {
      *
      * @return int
      */
-    public function getSize();
+    public function getSize(): int;
 
     /**
      * Gets font's color.
@@ -41,5 +41,5 @@ interface FontInterface {
      *
      * @return string
      */
-    public function wrapText(string $string, int $maxWidth, int $angle = 0);
+    public function wrapText(string $string, int $maxWidth, int $angle = 0): string;
 }

@@ -1,16 +1,13 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image;
 
 use BaconQrCode\Common\ErrorCorrectionLevel;
 use BaconQrCode\Encoder\Encoder;
-use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
-use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use BaconQrCode\Writer;
 use Zodream\Image\Adapters\ImageAdapter;
 use Zodream\Image\Base\Box;
 use Zodream\Image\Base\Point;
-use Zodream\Image\Renderer\QrCodeImageBackEnd;
 use Zodream\Image\Renderer\QrCodeImageRenderer;
 use Zxing\QrReader;
 
@@ -23,35 +20,35 @@ use Zxing\QrReader;
  */
 class QrCode extends Image {
 
-    protected $level = 0x1;
+    protected int $level = 0x1;
 
-    protected $width = 256;
+    protected int $width = 256;
 
-    protected $height = 256;
+    protected int $height = 256;
 
-    protected $encoding = 'ISO-8859-1';
+    protected string $encoding = 'ISO-8859-1';
 
-    protected $type = 'png';
+    protected string $type = 'png';
 
-    protected $realType = 'png';
+    protected string $realType = 'png';
 
     /**
      * 容错率
-     * @param $level
+     * @param int $level
      * @return $this
      */
-    public function setLevel($level) {
+    public function setLevel(int $level) {
         $this->level = $level;
         return $this;
     }
 
     /**
      * 尺寸
-     * @param $width
-     * @param $height
+     * @param int $width
+     * @param int $height
      * @return $this
      */
-    public function setSize($width, $height) {
+    public function setSize(int $width, int $height) {
         $this->width = $width;
         $this->height = $height;
         return $this;
