@@ -38,7 +38,7 @@ abstract class AbstractImage implements ImageAdapter {
 
     protected $resource;
 
-    public function loadResource($file) {
+    public function loadResource(mixed $file) {
         if (is_null($file)) {
             return $this;
         }

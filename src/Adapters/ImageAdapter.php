@@ -196,13 +196,13 @@ interface ImageAdapter {
      * @param null $color
      * @return static
      */
-    public function create(BoxInterface $size, $color = null);
+    public function create(BoxInterface $size, mixed $color = null);
 
-    public function open($path);
+    public function open(mixed $path);
 
-    public function load($string);
+    public function load(string $string);
 
-    public function read($resource);
+    public function read(mixed $resource);
 
     public function getHeight(): int;
 
@@ -225,7 +225,7 @@ interface ImageAdapter {
 
     public function resize(BoxInterface $size, $filter = ImageAdapter::FILTER_UNDEFINED);
 
-    public function rotate(int|float $angle, $background = null);
+    public function rotate(int|float $angle, mixed $background = null);
 
     /**
      * 把一张图片放在什么位置上
@@ -234,7 +234,7 @@ interface ImageAdapter {
      * @param int $alpha 透明度
      * @return static
      */
-    public function paste(ImageAdapter $image, PointInterface  $start, int|float $alpha = 100);
+    public function paste(ImageAdapter $image, PointInterface $start, int|float $alpha = 100);
 
     /**
      * 截取一部分图片放在什么位置
@@ -261,7 +261,7 @@ interface ImageAdapter {
 
     public function save();
 
-    public function saveAs($output = null, string $type = '');
+    public function saveAs(mixed $output = null, string $type = ''): bool;
 
     public function fill($fill);
 
@@ -275,7 +275,7 @@ interface ImageAdapter {
      * @param int $thickness
      * @return mixed
      */
-    public function arc(PointInterface $center, BoxInterface  $size, int $start, int $end, $color, int $thickness = 1);
+    public function arc(PointInterface $center, BoxInterface  $size, int $start, int $end, mixed $color, int $thickness = 1);
 
     /**
      * 画椭圆弧
@@ -299,7 +299,7 @@ interface ImageAdapter {
      * @param int $thickness
      * @return mixed
      */
-    public function circle(PointInterface $center, int|float $radius, $color, bool $fill = false, int $thickness = 1);
+    public function circle(PointInterface $center, int|float $radius, mixed $color, bool $fill = false, int $thickness = 1);
 
     /**
      * 画椭圆
@@ -310,7 +310,7 @@ interface ImageAdapter {
      * @param int $thickness
      * @return mixed
      */
-    public function ellipse(PointInterface $center, BoxInterface  $size, $color, bool $fill = false, int $thickness = 1);
+    public function ellipse(PointInterface $center, BoxInterface  $size, mixed $color, bool $fill = false, int $thickness = 1);
 
     /**
      * 画直线
@@ -320,7 +320,7 @@ interface ImageAdapter {
      * @param int $thickness
      * @return mixed
      */
-    public function line(PointInterface $start, PointInterface $end, $outline, int $thickness = 1);
+    public function line(PointInterface $start, PointInterface $end, mixed $outline, int $thickness = 1);
 
     /**
      * 画扇形
@@ -333,7 +333,7 @@ interface ImageAdapter {
      * @param int $thickness
      * @return mixed
      */
-    public function pieSlice(PointInterface $center, BoxInterface  $size, int $start, int $end, $color, bool $fill = false, int $thickness = 1);
+    public function pieSlice(PointInterface $center, BoxInterface  $size, int $start, int $end, mixed $color, bool $fill = false, int $thickness = 1);
 
     /**
      * 画点
@@ -341,7 +341,7 @@ interface ImageAdapter {
      * @param $color
      * @return mixed
      */
-    public function dot(PointInterface $position, $color);
+    public function dot(PointInterface $position, mixed $color);
 
     /**
      * 画长方体
@@ -352,7 +352,7 @@ interface ImageAdapter {
      * @param int $thickness
      * @return mixed
      */
-    public function rectangle(PointInterface $leftTop, PointInterface $rightBottom, $color, bool $fill = false, int $thickness = 1);
+    public function rectangle(PointInterface $leftTop, PointInterface $rightBottom, mixed $color, bool $fill = false, int $thickness = 1);
 
     /**
      * 画多边形
@@ -362,7 +362,7 @@ interface ImageAdapter {
      * @param int $thickness
      * @return static
      */
-    public function polygon(array $coordinates, $color, bool $fill = false, int $thickness = 1);
+    public function polygon(array $coordinates, mixed $color, bool $fill = false, int $thickness = 1);
 
     /**
      * @param string $string
@@ -382,7 +382,7 @@ interface ImageAdapter {
      */
     public function fontSize(string $string, FontInterface $font, int|float $angle = 0);
 
-    public function transparent($color);
+    public function transparent(mixed $color);
 
     public function gamma(float $correction);
 
@@ -390,7 +390,7 @@ interface ImageAdapter {
 
     public function grayscale();
 
-    public function colorize($color);
+    public function colorize(mixed $color);
 
     public function sharpen();
 
@@ -405,12 +405,12 @@ interface ImageAdapter {
      * @param $color
      * @return mixed
      */
-    public function converterToColor($color);
+    public function converterToColor(mixed $color): mixed;
 
     /**
      * 把颜色转成RGBA格式
      * @param $color
      * @return mixed
      */
-    public function converterFromColor($color);
+    public function converterFromColor(mixed $color): mixed;
 }

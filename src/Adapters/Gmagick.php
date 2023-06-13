@@ -1,7 +1,9 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image\Adapters;
 
 use Exception;
+use GmagickPixel;
 use InvalidArgumentException;
 use RuntimeException;
 use Zodream\Image\Base\Box;
@@ -22,23 +24,16 @@ class Gmagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function open($path)
+    public function open(mixed $path)
     {
-        $loader = $path instanceof LoaderInterface ? $path : $this->getClassFactory()->createFileLoader($path);
-        $path = $loader->getPath();
 
         try {
-            if ($loader->isLocalFile()) {
-                $gmagick = new \Gmagick($path);
-                $image = $this->getClassFactory()->createImage(ClassFactoryInterface::HANDLE_GMAGICK, $gmagick, $this->createPalette($gmagick), $this->getMetadataReader()->readFile($loader));
-            } else {
-                $image = $this->doLoad($loader->getData(), $this->getMetadataReader()->readFile($loader));
-            }
+            $this->resource = new \Gmagick((string)$path);
         } catch (\GmagickException $e) {
             throw new RuntimeException(sprintf('Unable to open image %s', $path), $e->getCode(), $e);
         }
 
-        return $image;
+        return $this;
     }
 
     /**
@@ -90,8 +85,7 @@ class Gmagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function load($string)
-    {
+    public function load($string) {
         return $this->doLoad($string, $this->getMetadataReader()->readData($string));
     }
 
@@ -174,7 +168,7 @@ class Gmagick extends AbstractImage implements ImageAdapter {
         $height = $size->getHeight();
 
         try {
-            $pixel = $this->getColor($color);
+            $pixel = $this->converterToColor($color);
             $chord = new \GmagickDraw();
 
             $chord->setstrokecolor($pixel);
@@ -183,10 +177,10 @@ class Gmagick extends AbstractImage implements ImageAdapter {
             if ($fill) {
                 $chord->setfillcolor($pixel);
             } else {
-                $x1 = round($x + $width / 2 * cos(deg2rad($start)));
-                $y1 = round($y + $height / 2 * sin(deg2rad($start)));
-                $x2 = round($x + $width / 2 * cos(deg2rad($end)));
-                $y2 = round($y + $height / 2 * sin(deg2rad($end)));
+                $x1 = (int)round($x + $width / 2 * cos(deg2rad($start)));
+                $y1 = (int)round($y + $height / 2 * sin(deg2rad($start)));
+                $x2 = (int)round($x + $width / 2 * cos(deg2rad($end)));
+                $y2 = (int)round($y + $height / 2 * sin(deg2rad($end)));
 
                 $this->line(new Point($x1, $y1), new Point($x2, $y2), $color, $thickness);
 
@@ -232,7 +226,7 @@ class Gmagick extends AbstractImage implements ImageAdapter {
         $height = $size->getHeight();
 
         try {
-            $pixel = $this->getColor($color);
+            $pixel = $this->converterToColor($color);
             $ellipse = new \GmagickDraw();
 
             $ellipse->setstrokecolor($pixel);
@@ -275,7 +269,7 @@ class Gmagick extends AbstractImage implements ImageAdapter {
             return $this;
         }
         try {
-            $pixel = $this->getColor($outline);
+            $pixel = $this->converterToColor($outline);
             $line = new \GmagickDraw();
 
             $line->setstrokecolor($pixel);
@@ -313,10 +307,10 @@ class Gmagick extends AbstractImage implements ImageAdapter {
         $width = $size->getWidth();
         $height = $size->getHeight();
 
-        $x1 = round($center->getX() + $width / 2 * cos(deg2rad($start)));
-        $y1 = round($center->getY() + $height / 2 * sin(deg2rad($start)));
-        $x2 = round($center->getX() + $width / 2 * cos(deg2rad($end)));
-        $y2 = round($center->getY() + $height / 2 * sin(deg2rad($end)));
+        $x1 = (int)round($center->getX() + $width / 2 * cos(deg2rad($start)));
+        $y1 = (int)round($center->getY() + $height / 2 * sin(deg2rad($start)));
+        $x2 = (int)round($center->getX() + $width / 2 * cos(deg2rad($end)));
+        $y2 = (int)round($center->getY() + $height / 2 * sin(deg2rad($end)));
 
         if ($fill) {
             $this->chord($center, $size, $start, $end, $color, true, $thickness);
@@ -695,22 +689,7 @@ class Gmagick extends AbstractImage implements ImageAdapter {
     public function resize(BoxInterface $size, $filter = ImageAdapter::FILTER_UNDEFINED)
     {
         static $supportedFilters = array(
-            ImageInterface::FILTER_UNDEFINED => \Gmagick::FILTER_UNDEFINED,
-            ImageInterface::FILTER_BESSEL => \Gmagick::FILTER_BESSEL,
-            ImageInterface::FILTER_BLACKMAN => \Gmagick::FILTER_BLACKMAN,
-            ImageInterface::FILTER_BOX => \Gmagick::FILTER_BOX,
-            ImageInterface::FILTER_CATROM => \Gmagick::FILTER_CATROM,
-            ImageInterface::FILTER_CUBIC => \Gmagick::FILTER_CUBIC,
-            ImageInterface::FILTER_GAUSSIAN => \Gmagick::FILTER_GAUSSIAN,
-            ImageInterface::FILTER_HANNING => \Gmagick::FILTER_HANNING,
-            ImageInterface::FILTER_HAMMING => \Gmagick::FILTER_HAMMING,
-            ImageInterface::FILTER_HERMITE => \Gmagick::FILTER_HERMITE,
-            ImageInterface::FILTER_LANCZOS => \Gmagick::FILTER_LANCZOS,
-            ImageInterface::FILTER_MITCHELL => \Gmagick::FILTER_MITCHELL,
-            ImageInterface::FILTER_POINT => \Gmagick::FILTER_POINT,
-            ImageInterface::FILTER_QUADRATIC => \Gmagick::FILTER_QUADRATIC,
-            ImageInterface::FILTER_SINC => \Gmagick::FILTER_SINC,
-            ImageInterface::FILTER_TRIANGLE => \Gmagick::FILTER_TRIANGLE,
+
         );
 
         if (!array_key_exists($filter, $supportedFilters)) {
@@ -730,13 +709,13 @@ class Gmagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function rotate($angle, $background = null)
+    public function rotate(int|float $angle, mixed $background = null)
     {
         try {
             if ($background === null) {
                 $background = '#fff';
             }
-            $pixel = $this->getColor($background);
+            $pixel = $this->converterToColor($background);
 
             $this->resource->rotateimage($pixel, $angle);
 
@@ -809,7 +788,7 @@ class Gmagick extends AbstractImage implements ImageAdapter {
                     // first digit: compression level (default: 7)
                     $compression = isset($options['png_compression_level']) ? $options['png_compression_level'] * 10 : 70;
                     // second digit: compression filter (default: 5)
-                    $compression += isset($options['png_compression_filter']) ? $options['png_compression_filter'] : 5;
+                    $compression += $options['png_compression_filter'] ?? 5;
                     $image->setCompressionQuality($compression);
                 }
                 break;
@@ -843,18 +822,16 @@ class Gmagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function save($path = null, array $options = array())
+    public function save()
     {
-        $path = null === $path ? $this->resource->getImageFilename() : $path;
+        $path = $this->file;
 
         if ('' === trim($path)) {
             throw new RuntimeException('You can omit save path only if image has been open from a file');
         }
 
         try {
-            $this->prepareOutput($options, $path);
-            $allFrames = !isset($options['animated']) || false === $options['animated'];
-            $this->resource->writeimage($path, $allFrames);
+            $this->resource->writeimage($path, true);
         } catch (\GmagickException $e) {
             throw new RuntimeException('Save operation failed', $e->getCode(), $e);
         }
@@ -888,33 +865,33 @@ class Gmagick extends AbstractImage implements ImageAdapter {
      *
      * @return \GmagickPixel
      */
-    public function converterToColor($color)
+    public function converterToColor(mixed $color): GmagickPixel
     {
-        if (!$color->isOpaque()) {
-            throw new InvalidArgumentException('Gmagick doesn\'t support transparency');
-        }
+//        if () {
+//            throw new InvalidArgumentException('Gmagick doesn\'t support transparency');
+//        }
 
         return new \GmagickPixel((string) $color);
     }
 
     public function getHeight(): int
     {
-        // TODO: Implement getHeight() method.
+        return $this->resource->getimageheight();
     }
 
     public function getWidth(): int
     {
-        // TODO: Implement getWidth() method.
+        return $this->resource->getimagewidth();
     }
 
     public function scale(BoxInterface $box)
     {
-        // TODO: Implement scale() method.
+        $this->resource->scaleimage($box->getWidth(), $box->getHeight());
+        return $this;
     }
 
     public function getColorAt(PointInterface $point)
     {
-        // TODO: Implement getColorAt() method.
     }
 
     public function copy()
@@ -924,12 +901,14 @@ class Gmagick extends AbstractImage implements ImageAdapter {
 
     public function crop(PointInterface $start, BoxInterface $size)
     {
-        // TODO: Implement crop() method.
+        $this->resource->cropimage($size->getWidth(), $size->getHeight(), $start->getX(), $start->getY());
+        return $this;
     }
 
-    public function saveAs($output = null, string $type = '')
+    public function saveAs(mixed $output = null, string $type = ''): bool
     {
-        // TODO: Implement saveAs() method.
+        $this->resource->writeimage($output, true);
+        return true;
     }
 
     public function fill($fill)
@@ -942,18 +921,42 @@ class Gmagick extends AbstractImage implements ImageAdapter {
         // TODO: Implement pastePart() method.
     }
 
-    public function transparent($color)
+    public function transparent(mixed $color)
     {
-        // TODO: Implement transparent() method.
+        throw new Exception('gmagick is not support transparent');
     }
 
-    public function converterFromColor($color)
+    public function converterFromColor(mixed $color): mixed
     {
         // TODO: Implement converterFromColor() method.
+        return [];
     }
 
     public function thumbnail(BoxInterface $box)
     {
-        // TODO: Implement thumbnail() method.
+        $this->resource->thumbnailimage($box->getWidth(), $box->getHeight());
+        return $this;
+    }
+
+    private function getFilter(string $filter): int {
+        return match ($filter) {
+            ImageAdapter::FILTER_UNDEFINED => \Gmagick::FILTER_UNDEFINED,
+            ImageAdapter::FILTER_BESSEL => \Gmagick::FILTER_BESSEL,
+            ImageAdapter::FILTER_BLACKMAN => \Gmagick::FILTER_BLACKMAN,
+            ImageAdapter::FILTER_BOX => \Gmagick::FILTER_BOX,
+            ImageAdapter::FILTER_CATROM => \Gmagick::FILTER_CATROM,
+            ImageAdapter::FILTER_CUBIC => \Gmagick::FILTER_CUBIC,
+            ImageAdapter::FILTER_GAUSSIAN => \Gmagick::FILTER_GAUSSIAN,
+            ImageAdapter::FILTER_HANNING => \Gmagick::FILTER_HANNING,
+            ImageAdapter::FILTER_HAMMING => \Gmagick::FILTER_HAMMING,
+            ImageAdapter::FILTER_HERMITE => \Gmagick::FILTER_HERMITE,
+            ImageAdapter::FILTER_LANCZOS => \Gmagick::FILTER_LANCZOS,
+            ImageAdapter::FILTER_MITCHELL => \Gmagick::FILTER_MITCHELL,
+            ImageAdapter::FILTER_POINT => \Gmagick::FILTER_POINT,
+            ImageAdapter::FILTER_QUADRATIC => \Gmagick::FILTER_QUADRATIC,
+            ImageAdapter::FILTER_SINC => \Gmagick::FILTER_SINC,
+            ImageAdapter::FILTER_TRIANGLE => \Gmagick::FILTER_TRIANGLE,
+            default => throw new \Exception('error filter'),
+        };
     }
 }

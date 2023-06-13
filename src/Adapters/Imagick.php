@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image\Adapters;
 
 use InvalidArgumentException;
@@ -13,6 +14,10 @@ use Zodream\Image\Base\PointInterface;
 use Zodream\Image\Colors;
 use Zodream\Image\ImageManager;
 
+/**
+ * 查考 Imagine 作了适配
+ * @see https://github.com/php-imagine/Imagine
+ */
 class Imagick extends AbstractImage implements ImageAdapter {
 
     /**
@@ -24,7 +29,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function open($path)
+    public function open(mixed $path)
     {
         try {
             $this->resource = new \Imagick((string)$path);
@@ -74,7 +79,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
     /**
      * {@inheritdoc}
      */
-    public function load($string)
+    public function load(string $string)
     {
         try {
             $imagick = new \Imagick();
@@ -93,7 +98,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function read($resource)
+    public function read(mixed $resource)
     {
         if (!is_resource($resource)) {
             throw new InvalidArgumentException('Variable does not contain a stream resource');
@@ -190,8 +195,12 @@ class Imagick extends AbstractImage implements ImageAdapter {
             if ($fill) {
                 $chord->setFillColor($pixel);
             } else {
-                $from = new Point(round($x + $width / 2 * cos(deg2rad($start))), round($y + $height / 2 * sin(deg2rad($start))));
-                $to = new Point(round($x + $width / 2 * cos(deg2rad($end))), round($y + $height / 2 * sin(deg2rad($end))));
+                $from = new Point(
+                    (int)round($x + $width / 2 * cos(deg2rad($start))),
+                    (int)round($y + $height / 2 * sin(deg2rad($start))));
+                $to = new Point(
+                    (int)round($x + $width / 2 * cos(deg2rad($end))),
+                    (int)round($y + $height / 2 * sin(deg2rad($end))));
                 $this->line($from, $to, $color, $thickness);
                 $chord->setFillColor('transparent');
             }
@@ -323,7 +332,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
      */
     public function pieSlice(PointInterface $center, BoxInterface  $size, int $start, int $end, $color, bool $fill = false, int $thickness = 1)
     {
-        $thickness = max(0, (int) round($thickness));
+        $thickness = max(0, (int)round($thickness));
         if ($thickness === 0 && !$fill) {
             return $this;
         }
@@ -340,8 +349,8 @@ class Imagick extends AbstractImage implements ImageAdapter {
             $this->polygon(
                 array(
                     $center,
-                    new Point($x1, $y1),
-                    new Point($x2, $y2),
+                    new Point((int)$x1, (int)$y1),
+                    new Point((int)$x2, (int)$y2),
                 ),
                 $color,
                 true,
@@ -349,8 +358,8 @@ class Imagick extends AbstractImage implements ImageAdapter {
             );
         } else {
             $this->arc($center, $size, $start, $end, $color, $thickness);
-            $this->line($center, new Point($x1, $y1), $color, $thickness);
-            $this->line($center, new Point($x2, $y2), $color, $thickness);
+            $this->line($center, new Point((int)$x1, (int)$y1), $color, $thickness);
+            $this->line($center, new Point((int)$x2, (int)$y2), $color, $thickness);
         }
 
         return $this;
@@ -604,16 +613,19 @@ class Imagick extends AbstractImage implements ImageAdapter {
 
     /**
      * {@inheritdoc}
-     *
+     * @param array|string $color
      */
-    public function colorize($color)
+    public function colorize(mixed $color)
     {
-        if (!$color instanceof RGB) {
-            throw new NotSupportedException('Colorize with non-rgb color is not supported');
+        if (!is_array($color)) {
+            $color = Colors::transformRGB($color);
         }
-
+        if (!is_array($color) || count($color) < 3) {
+            throw new \Exception('color is not [R,G,B]');
+        }
         try {
-            $this->resource->colorizeImage((string) $color, new \ImagickPixel(sprintf('rgba(%d, %d, %d, 1)', $color->getRed(), $color->getGreen(), $color->getBlue())));
+            $this->resource->colorizeImage($this->converterToColor($color),
+                new \ImagickPixel(sprintf('rgba(%d, %d, %d, 1)', $color[0], $color[1], $color[2])));
         } catch (\ImagickException $e) {
             throw new RuntimeException('Failed to colorize the image', $e->getCode(), $e);
         }
@@ -729,9 +741,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
             if (method_exists($pasteMe, 'setImageAlpha')) {
                 $pasteMe->setImageAlpha($alpha / 100);
             } else {
-                ErrorHandling::ignoring(E_DEPRECATED, function () use ($pasteMe, $alpha) {
-                    $pasteMe->setImageOpacity($alpha / 100);
-                });
+                $pasteMe->setImageOpacity($alpha / 100);
             }
         } else {
             $pasteMe = null;
@@ -767,7 +777,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
     public function resize(BoxInterface $size, $filter = ImageAdapter::FILTER_UNDEFINED)
     {
         try {
-            if ($this->layers()->count() > 1) {
+            if ($this->resource->count() > 1) {
                 $this->resource = $this->resource->coalesceImages();
                 foreach ($this->resource as $frame) {
                     $frame->resizeImage($size->getWidth(), $size->getHeight(), $this->getFilter($filter), 1);
@@ -811,15 +821,14 @@ class Imagick extends AbstractImage implements ImageAdapter {
      * {@inheritdoc}
      *
      */
-    public function save($path = null, array $options = array())
+    public function save()
     {
-        $path = null === $path ? $this->resource->getImageFilename() : $path;
+        $path = $this->file;
         if (null === $path) {
             throw new RuntimeException('You can omit save path only if image has been open from a file');
         }
 
         try {
-            $this->prepareOutput($options, $path);
             $this->resource->writeImages($path, true);
         } catch (\ImagickException $e) {
             throw new RuntimeException('Save operation failed', $e->getCode(), $e);
@@ -854,9 +863,9 @@ class Imagick extends AbstractImage implements ImageAdapter {
     /**
      * Gets specifically formatted color string from ColorInterface instance.
      *
-     * @return string
+     * @return \ImagickPixel
      */
-    public function converterToColor($color)
+    public function converterToColor(mixed $color): \ImagickPixel
     {
         if ($color instanceof \ImagickPixel) {
             return $color;
@@ -911,7 +920,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function saveAs($output = null, string $type = 'jpeg')
+    public function saveAs(mixed $output = null, string $type = 'jpeg'): bool
     {
         $this->setRealType($type);
         $this->resource->setImageFormat($this->getRealType());
@@ -926,13 +935,13 @@ class Imagick extends AbstractImage implements ImageAdapter {
         return 'data:image/'.$this->getRealType().';base64,'.base64_encode($this->resource->getImageBlob());
     }
 
-    public function fill($color)
+    public function fill(mixed $color)
     {
         $this->resource->setImageBackgroundColor($this->converterToColor($color));
         return $this;
     }
 
-    public function transparent($color)
+    public function transparent(mixed $color)
     {
         $this->setRealType('png');
         $this->resource->setimageformat('png');
@@ -949,7 +958,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function converterFromColor($color)
+    public function converterFromColor(mixed $color): mixed
     {
         if (is_array($color)) {
             return $color;
@@ -959,5 +968,28 @@ class Imagick extends AbstractImage implements ImageAdapter {
         }
         $res = $color->getColor();
         return [$res['r'], $res['g'], $res['b'], $res['a']];
+    }
+
+    private function getFilter(string $filter = ImageAdapter::FILTER_UNDEFINED): int
+    {
+        return match($filter) {
+            ImageAdapter::FILTER_UNDEFINED => \Imagick::FILTER_UNDEFINED,
+            ImageAdapter::FILTER_BESSEL => \Imagick::FILTER_BESSEL,
+            ImageAdapter::FILTER_BLACKMAN => \Imagick::FILTER_BLACKMAN,
+            ImageAdapter::FILTER_BOX => \Imagick::FILTER_BOX,
+            ImageAdapter::FILTER_CATROM => \Imagick::FILTER_CATROM,
+            ImageAdapter::FILTER_CUBIC => \Imagick::FILTER_CUBIC,
+            ImageAdapter::FILTER_GAUSSIAN => \Imagick::FILTER_GAUSSIAN,
+            ImageAdapter::FILTER_HANNING => \Imagick::FILTER_HANNING,
+            ImageAdapter::FILTER_HAMMING => \Imagick::FILTER_HAMMING,
+            ImageAdapter::FILTER_HERMITE => \Imagick::FILTER_HERMITE,
+            ImageAdapter::FILTER_LANCZOS => \Imagick::FILTER_LANCZOS,
+            ImageAdapter::FILTER_MITCHELL => \Imagick::FILTER_MITCHELL,
+            ImageAdapter::FILTER_POINT => \Imagick::FILTER_POINT,
+            ImageAdapter::FILTER_QUADRATIC => \Imagick::FILTER_QUADRATIC,
+            ImageAdapter::FILTER_SINC => \Imagick::FILTER_SINC,
+            ImageAdapter::FILTER_TRIANGLE => \Imagick::FILTER_TRIANGLE,
+            default => throw new \Exception('error filter'),
+        };
     }
 }

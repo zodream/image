@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image\Adapters;
 
 use InvalidArgumentException;
@@ -19,7 +20,7 @@ class Gd extends AbstractImage implements ImageAdapter {
      */
     protected $resource;
 
-    public function create(BoxInterface $size, $color = null)
+    public function create(BoxInterface $size, mixed $color = null)
     {
         $width = $size->getWidth();
         $height = $size->getHeight();
@@ -55,12 +56,12 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function open($file) {
-        if (!$this->check($file)) {
+    public function open(mixed $path) {
+        if (!$this->check($path)) {
             throw new \Exception('file error');
         }
-        $this->file = $file;
-        $imageInfo = getimagesize($file);
+        $this->file = $path;
+        $imageInfo = getimagesize($path);
         $this->width = $imageInfo[0];
         $this->height = $imageInfo[1];
         $this->type = empty($type)
@@ -70,7 +71,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         if (false === $this->realType) {
             throw new \Exception('image type error');
         }
-        $resource = call_user_func('imagecreatefrom'.$this->realType, $file);
+        $resource = call_user_func('imagecreatefrom'.$this->realType, $path);
         $this->wrap($resource);
         return $this;
     }
@@ -255,7 +256,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    final public function rotate($angle, $background = null)
+    final public function rotate(int|float $angle, mixed $background = null)
     {
         if ($background === null) {
             $background = '#fff';
@@ -287,7 +288,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return clone $this;
     }
 
-    public function fill($fill) {
+    public function fill(mixed $fill) {
         $size = $this->getSize();
 
         if (is_string($fill) || is_array($fill)) {
@@ -705,7 +706,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
-    public function converterToColor($color) {
+    public function converterToColor(mixed $color): mixed {
         $color = Colors::converter(...func_get_args());
         if (is_integer($color)) {
             return $color;
@@ -713,7 +714,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         return imagecolorallocate($this->resource, $color[0], $color[1], $color[2]);
     }
 
-    public function converterFromColor($color) {
+    public function converterFromColor(mixed $color): array {
         $result = imagecolorsforindex($this->resource, $color);
         return array(
             $result['red'],
@@ -740,7 +741,7 @@ class Gd extends AbstractImage implements ImageAdapter {
      * @param string $type
      * @return bool
      */
-    public function saveAs($output = null, string $type = '') {
+    public function saveAs(mixed $output = null, string $type = ''): bool {
         $this->setRealType($type);
         if (!is_null($output)) {
             $output = (string)$output;
