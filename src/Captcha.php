@@ -160,8 +160,8 @@ class Captcha extends Image {
                 $this->chars[$i],
                  new Font($this->configs['fontFamily'], $size, $this->fontColor($i)),
                  new Point((int)($left + $width * $i),
-                     $height > $maxHeight
-                         ? $height : mt_rand($height, $maxHeight)),
+                     intval($height > $maxHeight
+                         ? $height : mt_rand($height, $maxHeight))),
                 $angle
             );
         }

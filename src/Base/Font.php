@@ -11,13 +11,6 @@ class Font implements FontInterface {
     protected string|int $file;
 
     /**
-     * @var int
-     */
-    protected int $size;
-
-    protected string $color;
-
-    /**
      * Constructs a font with specified $file, $size and $color.
      *
      * The font size is to be specified in points (e.g. 10pt means 10)
@@ -26,11 +19,11 @@ class Font implements FontInterface {
      * @param int $size
      * @param mixed $color
      */
-    public function __construct(mixed $file, int $size, string|array $color)
+    public function __construct(mixed $file,
+                                protected int $size,
+                                protected mixed $color)
     {
         $this->file = is_string($file) ? $file : intval($file);
-        $this->size = $size;
-        $this->color = $color;
     }
 
     /**
@@ -55,7 +48,7 @@ class Font implements FontInterface {
      * {@inheritdoc}
      *
      */
-    final public function getColor()
+    final public function getColor(): mixed
     {
         return $this->color;
     }

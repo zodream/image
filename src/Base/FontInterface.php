@@ -21,7 +21,7 @@ interface FontInterface {
      * Gets font's color.
      *
      */
-    public function getColor();
+    public function getColor(): mixed;
 
     /**
      * Gets BoxInterface of font size on the image based on string and angle.
