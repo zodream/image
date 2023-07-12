@@ -155,13 +155,13 @@ class Captcha extends Image {
         for ($i = 0; $i < $length; $i ++) {
             $size = $this->fontSize();
             $angle = $size > $this->height  ? 0 : $this->angle();
-            $height = (abs(cos($angle)) + abs(sin($angle))) * $size;
+            $height = intval((abs(cos($angle)) + abs(sin($angle))) * $size);
             $this->instance()->text(
                 $this->chars[$i],
                  new Font($this->configs['fontFamily'], $size, $this->fontColor($i)),
                  new Point((int)($left + $width * $i),
-                     intval($height > $maxHeight
-                         ? $height : mt_rand($height, $maxHeight))),
+                     $height > $maxHeight
+                         ? $height : mt_rand($height, $maxHeight)),
                 $angle
             );
         }

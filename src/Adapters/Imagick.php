@@ -64,7 +64,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
 
             $imagick->setImageBackgroundColor($pixel);
 
-            $imagick->setImageAlpha($pixel->getColorValue(\Imagick::COLOR_ALPHA));
+            // $imagick->setImageAlpha($pixel->getColorValue(\Imagick::COLOR_ALPHA));
 
             $pixel->clear();
             $pixel->destroy();
@@ -877,7 +877,9 @@ class Imagick extends AbstractImage implements ImageAdapter {
             unset($args);
         }
         $pixel = new \ImagickPixel(sprintf('rgb(%d,%d,%d)', $args[0], $args[1], $args[2]));
-        $pixel->setColorValue(\Imagick::COLOR_ALPHA, $args[3]);
+        if (isset($args[3])) {
+            $pixel->setColorValue(\Imagick::COLOR_ALPHA, floatval($args[3]));
+        }
         return $pixel;
     }
 
