@@ -171,7 +171,7 @@ class Colors {
             return $args;
         }
         throw new Exception(
-            __('{color} IS ERROR!', [
+            __('Color[{color}] IS ERROR!', [
                 'color' => $color
             ])
         );

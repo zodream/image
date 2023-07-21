@@ -57,6 +57,7 @@ class Gd extends AbstractImage implements ImageAdapter {
     }
 
     public function open(mixed $path) {
+        $path = (string)$path;
         if (!$this->check($path)) {
             throw new \Exception('file error');
         }
@@ -570,7 +571,7 @@ class Gd extends AbstractImage implements ImageAdapter {
     {
         $angle = -1 * $angle;
         $fontsize = $font->getSize();
-        $fontfile = $font->getFile();
+        $fontFile = $font->getFile();
         $x = $position->getX();
         $y = $position->getY();// + $fontsize;
 
@@ -582,29 +583,46 @@ class Gd extends AbstractImage implements ImageAdapter {
 //            throw new RuntimeException('Font mask operation failed');
 //        }
 
-        if ($fontfile && DIRECTORY_SEPARATOR === '\\') {
+        if (!is_numeric($fontFile) && $fontFile && DIRECTORY_SEPARATOR === '\\') {
             // On Windows imagefttext() throws a "Could not find/open font" error if $fontfile is not an absolute path.
-            $fontfileRealpath = realpath($fontfile);
-            if ($fontfileRealpath !== false) {
-                $fontfile = $fontfileRealpath;
+            $fontFileRealpath = realpath($fontFile);
+            if ($fontFileRealpath !== false) {
+                $fontFile = $fontFileRealpath;
             }
         }
-        if (is_numeric($fontfile)) {
+        if (is_numeric($fontFile)) {
             //$y -= $fontsize;
-            if (false === imagestring($this->resource, intval($fontfile), $x, $y, $string, $this->converterToColor($font->getColor()))) {
+            if (false === imagestring($this->resource, intval($fontFile), $x, $y, $string, $this->converterToColor($font->getColor()))) {
                 imagealphablending($this->resource, false);
                 throw new RuntimeException('Font mask operation failed');
             }
-        } else if (false === imagefttext($this->resource, $fontsize, $angle, $x, $y, $this->converterToColor($font->getColor()), $fontfile, $string)) {
+        } else if (false === imagefttext($this->resource, $fontsize, $angle, $x, $y, $this->converterToColor($font->getColor()), $fontFile, $string)) {
             imagealphablending($this->resource, false);
             throw new RuntimeException('Font mask operation failed');
         }
-
         if (false === imagealphablending($this->resource, false)) {
             throw new RuntimeException('Font mask operation failed');
         }
 
         return $this;
+    }
+
+    public function char(string|int $code, FontInterface $font, PointInterface $position,
+                         int|float $angle = 0) {
+        return $this->text(is_int($code) ?
+            mb_chr($code)// sprintf('&#%d;', $code)
+            : $code, $font, $position, $angle, 0);
+//        $fontFile = is_numeric($font->getFile()) ? intval($font->getFile()) :
+//            imageloadfont($font->getFile());
+//        if ($fontFile === false) {
+//            throw new \Exception('font is error');
+//        }
+//        if (false === imagechar($this->resource, $fontFile, $position->getX(),
+//                $position->getY(), is_int($code) ? mb_chr($code, 'UTF-8') : $code,
+//                $this->converterToColor($font->getColor()))) {
+//            throw new RuntimeException('Font mask operation failed');
+//        }
+//        return $this;
     }
 
     public function fontSize(string $string, FontInterface $font, int|float $angle = 0) {
@@ -711,7 +729,7 @@ class Gd extends AbstractImage implements ImageAdapter {
         if (is_integer($color)) {
             return $color;
         }
-        return imagecolorallocate($this->resource, $color[0], $color[1], $color[2]);
+        return imagecolorallocate($this->resource, (int)$color[0], (int)$color[1], (int)$color[2]);
     }
 
     public function converterFromColor(mixed $color): array {

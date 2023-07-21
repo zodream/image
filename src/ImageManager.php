@@ -23,7 +23,7 @@ final class ImageManager {
      */
     public static function create(string $driver = ''): ImageAdapter {
         if (empty($driver)) {
-            $driver = config('image.driver', 'gd');
+            $driver = !function_exists('config') ? 'gd' : config('image.driver', 'gd');
         }
         if (isset(self::$map[$driver])) {
             $driver = self::$map[$driver];

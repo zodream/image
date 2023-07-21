@@ -6,14 +6,21 @@ use Zodream\Image\Adapters\ImageAdapter;
 use Zodream\Image\Base\Box;
 use Zodream\Image\Base\Point;
 
-class SlideCaptcha extends Image {
+class SlideCaptcha extends Image implements ICaptcha {
+
+    protected array $configs = [
+        'alpha' => .5,
+        'slices' => 8, // 切片数量
+        'width' => 300,
+        'height' => 130,
+        'shapeWidth' => 20,
+        'shapeHeight' => 20
+    ];
 
     /**
      * @var integer[]
      */
     protected array $point = [];
-
-    protected float $alpha = .5;
 
     /**
      * @var ImageAdapter
@@ -25,9 +32,12 @@ class SlideCaptcha extends Image {
      */
     protected ?ImageAdapter $slideImage = null;
 
-    public function setAlpha(float $alpha) {
-        $this->alpha = $alpha;
-        return $this;
+    public function setConfigs(array $configs): void {
+        $this->configs = array_merge($this->configs, $configs);
+    }
+
+    public function isOnlyImage(): bool {
+        return false;
     }
 
     public function setShape(mixed $shape) {
@@ -35,6 +45,9 @@ class SlideCaptcha extends Image {
             $shape = $shape->instance();
         } elseif (!$shape instanceof ImageAdapter) {
             $shape = ImageManager::create()->loadResource($shape);
+        }
+        if ($shape->getWidth() > $this->configs['width'] || $shape->getHeight() > $this->configs['height']) {
+            $shape->scale(new Box($this->configs['shapeWidth'], $this->configs['shapeHeight']));
         }
         $this->shapeImage = $shape;
         return $this;
@@ -59,8 +72,11 @@ class SlideCaptcha extends Image {
         return $this->slideImage;
     }
 
-    public function generate(): void {
+    public function generate(): mixed {
+        $this->instance()->scale(new Box($this->configs['width'],
+            $this->configs['height']));
         $this->drawBox();
+        return $this->point;
     }
 
     public function drawBox(): void {
@@ -74,6 +90,7 @@ class SlideCaptcha extends Image {
         }
         $this->slideImage = ImageManager::create()->create(new Box($width, $height))
             ->setRealType('png');
+        $alpha = floatval($this->configs['alpha']);
         for ($i = 0; $i < $width; $i ++) {
             for ($j = 0; $j < $height; $j ++) {
                 $current = $this->isValidBound($i, $j);
@@ -86,9 +103,9 @@ class SlideCaptcha extends Image {
                 $this->slideImage->dot(new Point($i, $j), $color);
                 list($r, $g, $b) = $this->instance()->converterFromColor($color);
                 $this->instance()->dot(new Point($real_x, $real_y), [
-                    floor($r * $this->alpha),
-                    floor($g * $this->alpha),
-                    floor($b * $this->alpha),
+                    floor($r * $alpha),
+                    floor($g * $alpha),
+                    floor($b * $alpha),
                 ]);
             }
         }
@@ -109,37 +126,41 @@ class SlideCaptcha extends Image {
 
     /**
      * 按指定数值打乱排序重新生成图片
-     * @param array ...$args
+     * @param int[] $args
      * @param int $rows 多少层 默认2层
      * @return array [Image, point[], [width, height]]
      */
     public function sortBy(array $args, int $rows = 2): array {
-        if (!is_array($args)) {
-            $args = func_get_args();
-            $rows = 2;
-        }
-        $min = min(...$args);
-        $max = max(...$args);
-        $image = new Image();
-        $image->instance()->create($this->instance()->getSize());
-        $length = $max - $min + 1;
-        $count = ceil($length / $rows);
-        $width = $this->instance()->getWidth() / $count;
-        $height = $this->instance()->getHeight() / $rows;
-        $points = [];
-        foreach ($args as $i => $arg) {
-            $arg = $arg - $min;
-            $x = ($arg % $count)  * $width;
-            $y = floor($arg / $count) * $height;
-            $srcX = ($i % $count) * $width;
-            $srcY = floor($i / $count) * $height;
-            // 计算显示是图片唯一
-            $points[] = [- $x, -$y];
-            $image->instance()->pastePart($this->instance(), new Point($srcX, $srcY),
-                new Box($width, $height), new Point($x, $y));
+        return ImageHelper::sortBy($this->instance(), $args, $rows);
+    }
 
-        }
-        return [$image, $points, [$width, $height]];
+    public function verify(mixed $value, mixed $source): bool {
+        $x = ImageHelper::x($value);
+        $srcX = ImageHelper::x($source);
+        return abs($x - $srcX) < 5;
+    }
+
+    public function toArray(): array {
+        $args = range(0, intval($this->configs['slices']) - 1);
+        shuffle($args);
+        list($bg, $points, $size) = $this->sortBy($args);
+        return [
+            'image' => $bg->toBase64(),
+            'width' => $this->instance()->getWidth(),
+            'height' => $this->instance()->getHeight(),
+            'imageItems' => array_map(function ($item) use ($size) {
+                return [
+                    'x' => $item[0],
+                    'y' => $item[1],
+                    'width' => $size[0],
+                    'height' => $size[1]
+                ];
+            }, $points),
+            'control' => $this->slideImage->toBase64(),
+            'controlWidth' => $this->slideImage->getWidth(),
+            'controlHeight' => $this->slideImage->getHeight(),
+            'controlY' => $this->point[1]
+        ];
     }
 
 }

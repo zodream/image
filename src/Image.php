@@ -71,6 +71,9 @@ class Image {
     }
 
     public function show() {
+        if (!function_exists('app')) {
+            throw new \Exception('not support show');
+        }
         return app('response')->image($this)->send();
     }
 

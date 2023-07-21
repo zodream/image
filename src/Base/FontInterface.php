@@ -41,5 +41,5 @@ interface FontInterface {
      *
      * @return string
      */
-    public function wrapText(string $string, int $maxWidth, int $angle = 0): string;
+    public function wrapText(mixed $string, int $maxWidth, int $angle = 0): string;
 }

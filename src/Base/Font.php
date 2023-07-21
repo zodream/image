@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Image\Base;
 
 use InvalidArgumentException;
@@ -57,7 +58,7 @@ class Font implements FontInterface {
      * {@inheritdoc}
      *
      */
-    public function wrapText(string $string, int $maxWidth, int $angle = 0): string
+    public function wrapText(mixed $string, int $maxWidth, int $angle = 0): string
     {
         $string = (string) $string;
         if ($string === '') {

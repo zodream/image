@@ -446,7 +446,7 @@ class Gmagick extends AbstractImage implements ImageAdapter {
     public function text(string $string, FontInterface $font, PointInterface $position, int|float $angle = 0, int $width = 0)
     {
         try {
-            $pixel = $this->getColor($font->getColor());
+            $pixel = $this->converterToColor($font->getColor());
             $text = new \GmagickDraw();
 
             $text->setfont($font->getFile());
@@ -483,6 +483,10 @@ class Gmagick extends AbstractImage implements ImageAdapter {
         }
 
         return $this;
+    }
+
+    public function char(string|int $code, FontInterface $font, PointInterface $position, int|float $angle = 0) {
+        return $this->text(is_int($code) ? mb_chr($code, 'UTF-8') : $code, $font, $position, $angle, 0);
     }
 
     public function fontSize(string $string, FontInterface $font, int|float $angle = 0)

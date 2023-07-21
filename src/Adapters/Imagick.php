@@ -544,6 +544,10 @@ class Imagick extends AbstractImage implements ImageAdapter {
         return $this;
     }
 
+    public function char(string|int $code, FontInterface $font, PointInterface $position, int|float $angle = 0) {
+        return $this->text(is_int($code) ? mb_chr($code, 'UTF-8') : $code, $font, $position, $angle, 0);
+    }
+
     public function fontSize(string $string, FontInterface $font, int|float $angle = 0)
     {
         $text = new \ImagickDraw();

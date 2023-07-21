@@ -375,6 +375,16 @@ interface ImageAdapter {
     public function text(string $string, FontInterface $font, PointInterface $position, int|float $angle = 0, int $width = 0);
 
     /**
+     * 画一个字符
+     * @param string|int $code int 表示 codepoint
+     * @param FontInterface $font
+     * @param PointInterface $position
+     * @param int|float $angle
+     * @return mixed
+     */
+    public function char(string|int $code, FontInterface $font, PointInterface $position, int|float $angle = 0);
+
+    /**
      * @param string $string
      * @param FontInterface $font
      * @param int|float $angle

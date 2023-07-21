@@ -6,20 +6,15 @@ namespace Zodream\Image;
  *
  * @author Jason
  */
-
-use Zodream\Helpers\Security\Hash;
+//use Zodream\Helpers\Security\Hash;
 use Zodream\Image\Base\Box;
 use Zodream\Image\Base\Font;
 use Zodream\Image\Base\Point;
-use Zodream\Infrastructure\Concerns\ConfigTrait;
 
-class Captcha extends Image {
+class Captcha extends Image implements ICaptcha {
 
-    use ConfigTrait;
+    // const SESSION_KEY = 'captcha';
 
-    const SESSION_KEY = 'captcha';
-
-    protected $configKey = 'captcha';
     protected int $width;
     protected int $height;
 
@@ -50,6 +45,14 @@ class Captcha extends Image {
         return 'png';
     }
 
+    public function isOnlyImage(): bool {
+        return true;
+    }
+
+    public function setConfigs(array $configs): void {
+        $this->configs = array_merge($this->configs, $configs);
+    }
+
     /**
      * 获取验证码
      * @return string
@@ -65,19 +68,17 @@ class Captcha extends Image {
     /**
      * 生成
      * @param int $level 干扰等级
-     * @return $this
      * @throws \Exception
      */
-    public function generate(int $level = 0) {
+    public function generate(): mixed {
         $this->getCode();
-        $this->loadConfigs();
         $this->width = $this->configs['width'];
         $this->height = $this->configs['height'];
         $this->createBg();
         $this->createText();
-        $this->createLine($level);
+        $this->createLine(intval($this->configs['level'] ?? 1));
         $this->instance()->setRealType($this->getRealType());
-        return $this;
+        return ['code' => $this->code, 'sensitive' => $this->configs['sensitive']];
     }
 
 
@@ -90,12 +91,12 @@ class Captcha extends Image {
     public function createCode(bool $setSession = true) {
         list($this->code, $this->chars) = $this->configs['mode'] == 1
             ? $this->generateFormula() : $this->generateRandomChar();
-        if ($setSession) {
-            session()->set(self::SESSION_KEY, [
-                'sensitive' => $this->configs['sensitive'],
-                'key'       => Hash::make($this->configs['sensitive'] || is_numeric($this->code) ? $this->code : strtolower($this->code))
-            ]);
-        }
+//        if ($setSession) {
+//            session()->set(self::SESSION_KEY, [
+//                'sensitive' => $this->configs['sensitive'],
+//                'key'       => Hash::make($this->configs['sensitive'] || is_numeric($this->code) ? $this->code : strtolower($this->code))
+//            ]);
+//        }
         return $this;
     }
 
@@ -234,15 +235,30 @@ class Captcha extends Image {
      * @return bool
      * @throws \Exception
      */
-    public function verify(string $value): bool {
-        if (!session()->has(self::SESSION_KEY)) {
+    public function verify(mixed $value, mixed $source): bool {
+        if (!is_array($source) || empty($source)) {
             return false;
         }
-        $data = session()->get(self::SESSION_KEY);
-        if (!$data['sensitive'] && !is_numeric($value)) {
-            $value = strtolower($value);
+        if (!$source['sensitive']) {
+            $value = strtolower((string)$value);
         }
-        session()->delete(self::SESSION_KEY);
-        return Hash::verify($value, $data['key']);
+        return (string)$value === (string)$source['code'];
+//        if (!session()->has(self::SESSION_KEY)) {
+//            return false;
+//        }
+//        $data = session()->get(self::SESSION_KEY);
+//        if (!$data['sensitive'] && !is_numeric($value)) {
+//            $value = strtolower($value);
+//        }
+//        session()->delete(self::SESSION_KEY);
+//        return Hash::verify($value, $data['key']);
+    }
+
+    public function toArray(): array {
+        return [
+            'image' => $this->toBase64(),
+            'width' => $this->width,
+            'height' => $this->height,
+        ];
     }
 }
