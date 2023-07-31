@@ -3,22 +3,19 @@
 
 ## 当前状态：一直开发中
 
-## 注意
-
-验证码 需要配置 所以依赖 [zodream](https://github.com/zodream/zodream)
-
-
 ## 简单使用教程
 
 [验证码](#captcha)
+
+[滑动验证码](#slider)
+
+[文字点击验证](#hint)
 
 [二维码](#qr)
 
 [水印](#water)
 
 [缩略图](#thumb)
-
-[滑动验证码](#slider)
 
 [图片比较（简单版）](#compare)
 
@@ -46,7 +43,9 @@ $captcha->setConfigs([
     'fontSize' => 20,
     'fontFamily' => 'Ubuntu_regular.ttf'
 ]);
+$source = $captcha->generate();
 
+$captcha->verify($_POST['captcha'], $source);
 ```
 
 默认配置
@@ -110,45 +109,46 @@ $image->addText($text, $x, $y, $font->getSize(), $font->getColor(), $font->getFi
 ```PHP
 use Zodream\Image\SlideCaptcha;
 
-$img = new SlideCaptcha('bg.jpg');
-$img->scale(300, 130);
-$img->setShape('shape.jpg'); // 根据图片抠图
-$img->generate();
+$captcha = new SlideCaptcha();
+$captcha->setConfigs([
+    'width' => 300,
+    'height' => 130,
+]);
+$captcha->instance()->open('bg.jpg');
+$captcha->setShape('shape.jpg'); // 根据图片抠图
+$source = $captcha->generate();
 
-$args = range(0, 7);
-shuffle($args);
-list($bg, $points, $size) = $img->sortBy($args); // 根据生成的乱序数组打乱图片
+$captcha->verify($_POST['captcha'], $source);
+
+$imgData = $captcha->toArray();
 $html = '';
-foreach ($points as $point) {
-    $html .= sprintf('<div class="slide-img" style="background-position: %spx %spx"></div>', $point[0], $point[1]);
+foreach ($imgData['imageItems'] as $point) {
+    $html .= sprintf('<div class="slide-img" style="background-position: %spx %spx"></div>', $point['x'], $point['y']);
 }
-$width = $img->getWidth();
-$height = $img->getHeight();
-$bg_data = $bg->toBase64();
-$point = $img->getPoint(); // [x, y] 抠取的图片坐标
+
 $html = <<<HTML
 <style>
 .slide-box {
-    width: {$width}px;
-    height: {$height}px;
+    width: {$imgData['width']}px;
+    height: {$imgData['height']}px;
     position: relative;
 }
 .slide-box .slide-img {
     float: left;
     margin: 0;
     padding: 0;
-    background-image: url({$bg_data});
+    background-image: url({$imgData['image']});
     background-repeat: no-repeat;
-    width: {$size[0]}px;
-    height: {$size[1]}px;
+    width: {$imgData['imageItems'][0]['width']}px;
+    height: {$imgData['imageItems'][0]['height']}px;
 }
 .slide-box .slide-cut {
     position: absolute;
-    top: {$point[1]}px;
-    background-image: url({$img->getSlideImage()->toBase64()});
+    top: {$imgData['controlY']}px;
+    background-image: url({$imgData['control']});
     background-repeat: no-repeat;
-    width: {$img->getSlideImage()->getWidth()}px;
-    height: {$img->getSlideImage()->getHeight()}px;
+    width: {$imgData['controlWidth']}px;
+    height: {$imgData['controlHeight']}px;
     z-index: 9;
 }
 </style>
@@ -163,25 +163,30 @@ HTML;
 
 ```
 
+<a name="hint"></a>
+### 点击验证码
+依次点击图片上的文字
+
 ```php
+$captcha = new HintCaptcha();
+$items = ['我', '就', '你', '哈'];
+$captcha->setConfigs([
+    'width' => 300,
+    'height' => 130,
+    'fontSize' => 20,
+    'fontFamily' => 'Yahei.ttf', // 暂不支持字体图标 iconfont
+    'words' => $items,
+    'count' => 3,
+]);
+$captcha->instance()->open('images/banner.jpg');
+$source = $captcha->generate();
 
-$goods = new File('html\assets\images\zd.jpg');
-$qr = new File('html\assets\images\wx.jpg');
+$captcha->verify($_POST['captcha'], $source);
 
-$font = 'data\fonts\msyh.ttc';
-
-$img = new Canvas();
-$img->create(402, 712);
-$img->setBackground('#fff')
-    ->addImage(new Image($goods), new Box(0, 60, 402, 402))
-    ->addImage(new Image($qr), new Box(18, 590, 106, 106))
-    ->addText(new Text('请长按识别二维码', 18, 560, [155, 143, 128], $font, 12))
-    ->addText(new Text('微信支付购买', 18, 576, [155, 143, 128], $font, 12))
-    ->addText(new Text('kiwigo', 300, 560, '#000', $font, 16))
-    ->addText(new Text('￥', 278, 640, '#f00', $font, 12))
-    ->addText(new Text('123.00', 290, 640, '#f00', $font, 25))
-    ->addText(new Text('测试商品', 300, 670, '#000', $font, 12))
+$imgData = $captcha->toArray();
 ```
+
+
 
 <a name="draw"></a>
 ## 内容生成图片
