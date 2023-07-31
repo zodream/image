@@ -147,7 +147,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
 
             $arc->setStrokeColor($pixel);
             $arc->setStrokeWidth($thickness);
-            $arc->setFillColor('transparent');
+            // $arc->setFillColor($this->converterToColor('transparent'));
             $arc->arc(
                 $x - $width / 2,
                 $y - $height / 2,
@@ -202,7 +202,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
                     (int)round($x + $width / 2 * cos(deg2rad($end))),
                     (int)round($y + $height / 2 * sin(deg2rad($end))));
                 $this->line($from, $to, $color, $thickness);
-                $chord->setFillColor('transparent');
+                // $chord->setFillColor($this->converterToColor('transparent'));
             }
 
             $chord->arc(
@@ -261,7 +261,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
             if ($fill) {
                 $ellipse->setFillColor($pixel);
             } else {
-                $ellipse->setFillColor('transparent');
+                // $ellipse->setFillColor($this->converterToColor('transparent'));
             }
 
             $ellipse->ellipse(
@@ -419,7 +419,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
             if ($fill) {
                 $rectangle->setFillColor($pixel);
             } else {
-                $rectangle->setFillColor('transparent');
+                // $rectangle->setFillColor($this->converterToColor('transparent'));
             }
 
             $rectangle->rectangle($minX, $minY, $maxX, $maxY);
@@ -465,7 +465,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
             if ($fill) {
                 $polygon->setFillColor($pixel);
             } else {
-                $polygon->setFillColor('transparent');
+                // $polygon->setFillColor($this->converterToColor('transparent'));
             }
 
             $polygon->polygon($points);
@@ -493,7 +493,8 @@ class Imagick extends AbstractImage implements ImageAdapter {
             $pixel = $this->converterToColor($font->getColor());
             $text = new \ImagickDraw();
 
-            $text->setFont($font->getFile());
+            $this->addFont($text, $font->getFile());
+
             /*
              * @see http://www.php.net/manual/en/imagick.queryfontmetrics.php#101027
              *
@@ -552,7 +553,7 @@ class Imagick extends AbstractImage implements ImageAdapter {
     {
         $text = new \ImagickDraw();
 
-        $text->setFont($font->getFile());
+        $this->addFont($text, $font->getFile());
 
         /*
          * @see http://www.php.net/manual/en/imagick.queryfontmetrics.php#101027
@@ -941,9 +942,9 @@ class Imagick extends AbstractImage implements ImageAdapter {
         return 'data:image/'.$this->getRealType().';base64,'.base64_encode($this->resource->getImageBlob());
     }
 
-    public function fill(mixed $color)
+    public function fill(mixed $fill)
     {
-        $this->resource->setImageBackgroundColor($this->converterToColor($color));
+        $this->resource->setImageBackgroundColor($this->converterToColor($fill));
         return $this;
     }
 
@@ -974,6 +975,26 @@ class Imagick extends AbstractImage implements ImageAdapter {
         }
         $res = $color->getColor();
         return [$res['r'], $res['g'], $res['b'], $res['a']];
+    }
+
+    protected function addFont(\ImagickDraw $draw, int|string $fontName) {
+        if (is_file($fontName)) {
+            $draw->setFont($fontName);
+        } else {
+            $draw->setFontFamily($this->converterFont($fontName));
+        }
+    }
+
+    protected function converterFont(int|string $fontName): string {
+        if (!is_numeric($fontName)) {
+            return $fontName;
+        }
+        $fontItems = \Imagick::queryFonts();
+        $i = intval($fontName);
+        if (isset($fontItems[$i])) {
+            return $fontItems[$i];
+        }
+        throw new \Exception('Font is error');
     }
 
     private function getFilter(string $filter = ImageAdapter::FILTER_UNDEFINED): int

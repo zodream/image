@@ -222,7 +222,10 @@ class Captcha extends Image implements ICaptcha {
         for ($i = 0, $length = $level * 20; $i < $length; $i ++) {
             $this->instance()->text(
                 '*',
-                new Font(mt_rand(1, 5), 16, [mt_rand(200, 255), mt_rand(200, 255), mt_rand(200, 255)]),
+                new Font(
+                    is_numeric($this->configs['fontFamily'])
+                    ? mt_rand(1, 5) : $this->configs['fontFamily']
+                    , 16, [mt_rand(200, 255), mt_rand(200, 255), mt_rand(200, 255)]),
                 new Point(mt_rand(0, $this->width),
                     mt_rand(0, $this->height))
             );
@@ -241,6 +244,7 @@ class Captcha extends Image implements ICaptcha {
         }
         if (!$source['sensitive']) {
             $value = strtolower((string)$value);
+            $source['code'] = strtolower((string)$source['code']);
         }
         return (string)$value === (string)$source['code'];
 //        if (!session()->has(self::SESSION_KEY)) {

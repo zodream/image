@@ -45,37 +45,20 @@ class Gmagick extends AbstractImage implements ImageAdapter {
         $width = $size->getWidth();
         $height = $size->getHeight();
 
-        $palette = null !== $color ? $color->getPalette() : new RGB();
-        $color = null !== $color ? $color : $palette->color('fff');
-
+        if (empty($color)) {
+            $color = '#fff';
+        }
         try {
             $gmagick = new \Gmagick();
-            // Gmagick does not support creation of CMYK GmagickPixel
-            // see https://bugs.php.net/bug.php?id=64466
-            if ($color instanceof CMYKColor) {
-                $switchPalette = $palette;
-                $palette = new RGB();
-                $pixel = new \GmagickPixel($palette->color((string) $color));
-            } else {
-                $switchPalette = null;
-                $pixel = new \GmagickPixel((string) $color);
-            }
-
-            if (!$color->getPalette()->supportsAlpha() && $color->getAlpha() !== null && $color->getAlpha() < 100) {
-                throw new NotSupportedException('alpha transparency is not supported');
-            }
+            $pixel = $this->converterToColor($color);
 
             $gmagick->newimage($width, $height, $pixel->getcolor(false));
             $gmagick->setimagecolorspace(\Gmagick::COLORSPACE_TRANSPARENT);
             $gmagick->setimagebackgroundcolor($pixel);
 
-            $image = $this->getClassFactory()->createImage(ClassFactoryInterface::HANDLE_GMAGICK, $gmagick, $palette, new MetadataBag());
-
-            if ($switchPalette) {
-                $image->usePalette($switchPalette);
-            }
-
-            return $image;
+            $this->resource = $gmagick;
+            $this->refreshMeta();
+            return $this;
         } catch (\GmagickException $e) {
             throw new RuntimeException('Could not create empty image', $e->getCode(), $e);
         }
@@ -86,7 +69,16 @@ class Gmagick extends AbstractImage implements ImageAdapter {
      *
      */
     public function load($string) {
-        return $this->doLoad($string, $this->getMetadataReader()->readData($string));
+        try {
+            $imagick = new \Gmagick();
+
+            $imagick->readImageBlob($string);
+            $this->resource = $imagick;
+            $this->refreshMeta();
+            return $this;
+        } catch (\GmagickException $e) {
+            throw new RuntimeException('Could not load image from string', $e->getCode(), $e);
+        }
     }
 
     /**
@@ -105,7 +97,24 @@ class Gmagick extends AbstractImage implements ImageAdapter {
             throw new InvalidArgumentException('Couldn\'t read given resource');
         }
 
-        return $this->doLoad($content, $this->getMetadataReader()->readData($content, $resource));
+        try {
+            $imagick = new \Gmagick();
+            $imagick->readImageBlob($content);
+            $this->resource = $imagick;
+            $this->refreshMeta();
+        } catch (\GmagickException $e) {
+            throw new RuntimeException('Could not read image from resource', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    protected function refreshMeta() {
+        $this->width = $this->resource->getImageWidth();
+        $this->height = $this->resource->getImageHeight();
+        if (empty($this->realType)) {
+            $this->setRealType('png');
+        }
     }
 
 
@@ -125,7 +134,7 @@ class Gmagick extends AbstractImage implements ImageAdapter {
         $height = $size->getHeight();
 
         try {
-            $pixel = $this->getColor($color);
+            $pixel = $this->converterToColor($color);
             $arc = new \GmagickDraw();
 
             $arc->setstrokecolor($pixel);
@@ -343,7 +352,7 @@ class Gmagick extends AbstractImage implements ImageAdapter {
         $y = $position->getY();
 
         try {
-            $pixel = $this->getColor($color);
+            $pixel = $this->converterToColor($color);
             $point = new \GmagickDraw();
 
             $point->setfillcolor($pixel);
@@ -376,7 +385,7 @@ class Gmagick extends AbstractImage implements ImageAdapter {
         $maxY = max($leftTop->getY(), $rightBottom->getY());
 
         try {
-            $pixel = $this->getColor($color);
+            $pixel = $this->converterToColor($color);
             $rectangle = new \GmagickDraw();
 
             $rectangle->setstrokecolor($pixel);
@@ -415,7 +424,7 @@ class Gmagick extends AbstractImage implements ImageAdapter {
         }, $coordinates);
 
         try {
-            $pixel = $this->getColor($color);
+            $pixel = $this->converterToColor($color);
             $polygon = new \GmagickDraw();
 
             $polygon->setstrokecolor($pixel);
@@ -638,13 +647,12 @@ class Gmagick extends AbstractImage implements ImageAdapter {
     /**
      * {@inheritdoc}
      *
-     * @see \Imagine\Image\ManipulatorInterface::strip()
      */
     public function strip()
     {
         try {
             try {
-                $this->profile($this->palette->profile());
+                // $this->profile($this->palette->profile());
             } catch (\Exception $e) {
                 // here we discard setting the profile as the previous incorporated profile
                 // is corrupted, let's now strip the image
@@ -660,7 +668,6 @@ class Gmagick extends AbstractImage implements ImageAdapter {
     /**
      * {@inheritdoc}
      *
-     * @see \Imagine\Image\ManipulatorInterface::paste()
      */
     public function paste(ImageAdapter $image, PointInterface $start, int|float $alpha = 100)
     {
@@ -680,7 +687,7 @@ class Gmagick extends AbstractImage implements ImageAdapter {
                 throw new RuntimeException('Paste operation failed', $e->getCode(), $e);
             }
         } elseif ($alpha > 0) {
-            throw new NotSupportedException('Gmagick doesn\'t support paste with alpha.', 1);
+            throw new Exception('Gmagick doesn\'t support paste with alpha.', 1);
         }
 
         return $this;
@@ -932,14 +939,40 @@ class Gmagick extends AbstractImage implements ImageAdapter {
 
     public function converterFromColor(mixed $color): mixed
     {
-        // TODO: Implement converterFromColor() method.
-        return [];
+        if (is_array($color)) {
+            return $color;
+        }
+        if (!$color instanceof \GmagickPixel) {
+            $color = new \GmagickPixel((string)$color);
+        }
+        $res = $color->getColor(true);
+        return [$res['r'], $res['g'], $res['b'], $res['a']];
     }
 
     public function thumbnail(BoxInterface $box)
     {
         $this->resource->thumbnailimage($box->getWidth(), $box->getHeight());
         return $this;
+    }
+
+    protected function addFont(\GmagickDraw $draw, int|string $fontName) {
+        if (is_file($fontName)) {
+            $draw->setFont($fontName);
+        } else {
+            $draw->setFont($this->converterFont($fontName));
+        }
+    }
+
+    protected function converterFont(int|string $fontName): string {
+        if (!is_numeric($fontName)) {
+            return $fontName;
+        }
+        $fontItems = $this->resource->queryFonts();
+        $i = intval($fontName);
+        if (isset($fontItems[$i])) {
+            return $fontItems[$i];
+        }
+        throw new \Exception('Font is error');
     }
 
     private function getFilter(string $filter): int {
