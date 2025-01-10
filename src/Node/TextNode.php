@@ -20,11 +20,11 @@ class TextNode extends BaseNode {
     /**
      * @var ImageAdapter
      */
-    protected ?ImageAdapter $tmpImage = null;
+    protected ImageAdapter|null $tmpImage = null;
     /**
      * @var FontInterface
      */
-    protected ?FontInterface $font = null;
+    protected FontInterface|null $font = null;
 
     public function __construct($content) {
         $this->text($content);

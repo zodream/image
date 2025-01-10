@@ -66,7 +66,7 @@ class Image {
 	 * @param string $type
 	 * @return bool
 	 */
-    public function saveAs(?string $output = null, string $type = '') {
+    public function saveAs(string|null $output = null, string $type = '') {
         $this->instance()->saveAs($output, $type);
     }
 

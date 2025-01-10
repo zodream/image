@@ -21,7 +21,7 @@ class HintCaptcha extends Image implements ICaptcha {
     /**
      * @var ImageAdapter
      */
-    protected ?ImageAdapter $shapeImage = null;
+    protected ImageAdapter|null $shapeImage = null;
 
     public function isOnlyImage(): bool {
         return false;

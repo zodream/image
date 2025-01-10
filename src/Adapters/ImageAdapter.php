@@ -250,7 +250,7 @@ interface ImageAdapter {
                               PointInterface $srcStart,
                               BoxInterface $srcBox,
                               PointInterface $start,
-                              BoxInterface $box = null, int|float $alpha = 100);
+                              BoxInterface|null $box = null, int|float $alpha = 100);
 
     /**
      * 生成缩略图

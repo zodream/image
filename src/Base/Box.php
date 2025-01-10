@@ -49,7 +49,7 @@ final class Box implements BoxInterface
         return new self($size + $this->width,  $size + $this->height);
     }
 
-    public function contains(BoxInterface $box, ?PointInterface $start = null): bool {
+    public function contains(BoxInterface $box, PointInterface|null $start = null): bool {
         $start = $start ? $start : new Point(0, 0);
 
         return $start->in($this) && $this->width >= $box->getWidth() + $start->getX() && $this->height >= $box->getHeight() + $start->getY();

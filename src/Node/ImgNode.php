@@ -19,7 +19,7 @@ class ImgNode extends BaseNode {
     /**
      * @var ImageAdapter|null
      */
-    protected ?ImageAdapter $image = null;
+    protected ImageAdapter|null $image = null;
 
     public function __construct(string $src, array $properties = []) {
         $this->setSrc($src);

@@ -26,15 +26,15 @@ abstract class AbstractImage implements ImageAdapter {
         'gd2' => 'gd2'
     );
 
-    protected ?string $file;
+    protected string|null $file;
 
     protected int $width;
 
     protected int $height;
 
-    protected ?string $type;
+    protected string|null $type;
 
-    protected ?string $realType;
+    protected string|null $realType;
 
     protected $resource;
 

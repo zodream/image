@@ -15,7 +15,7 @@ use Zodream\Image\ImageManager;
 
 class QrCodeImageRenderer implements RendererInterface {
 
-    protected ?ImageAdapter $image;
+    protected ImageAdapter|null $image;
 
     protected array $colors = [];
 

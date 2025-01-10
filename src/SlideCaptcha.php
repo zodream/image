@@ -25,12 +25,12 @@ class SlideCaptcha extends Image implements ICaptcha {
     /**
      * @var ImageAdapter
      */
-    protected ?ImageAdapter $shapeImage = null;
+    protected ImageAdapter|null $shapeImage = null;
 
     /**
      * @var ImageAdapter
      */
-    protected ?ImageAdapter $slideImage = null;
+    protected ImageAdapter|null $slideImage = null;
 
     public function setConfigs(array $configs): void {
         $this->configs = array_merge($this->configs, $configs);

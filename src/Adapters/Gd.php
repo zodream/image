@@ -193,7 +193,7 @@ class Gd extends AbstractImage implements ImageAdapter {
      * @param int $alpha 未实现
      * @return Gd
      */
-    public function pastePart(ImageAdapter $src, PointInterface $srcStart, BoxInterface $srcBox, PointInterface $start, BoxInterface $box = null, int|float $alpha = 100) {
+    public function pastePart(ImageAdapter $src, PointInterface $srcStart, BoxInterface $srcBox, PointInterface $start, BoxInterface|null $box = null, int|float $alpha = 100) {
         if (!$src instanceof self) {
             throw new InvalidArgumentException(sprintf('Gd\Image can only paste() Gd\Image instances, %s given', get_class($src)));
         }

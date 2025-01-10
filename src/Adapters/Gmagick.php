@@ -927,7 +927,7 @@ class Gmagick extends AbstractImage implements ImageAdapter {
         // TODO: Implement fill() method.
     }
 
-    public function pastePart(ImageAdapter $src, PointInterface $srcStart, BoxInterface $srcBox, PointInterface $start, BoxInterface $box = null, int|float $alpha = 100)
+    public function pastePart(ImageAdapter $src, PointInterface $srcStart, BoxInterface $srcBox, PointInterface $start, BoxInterface|null $box = null, int|float $alpha = 100)
     {
         // TODO: Implement pastePart() method.
     }

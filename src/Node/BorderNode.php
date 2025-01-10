@@ -8,7 +8,7 @@ use Zodream\Image\Image;
 class BorderNode extends BaseNode {
 
     public function __construct(
-        protected ?BaseNode $content = null) {
+        protected BaseNode|null $content = null) {
     }
 
     protected function refreshSize(array $styles, int $parentInnerWidth, array $parentStyles): array {
