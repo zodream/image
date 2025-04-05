@@ -7,7 +7,7 @@ use Zodream\Image\Base\Box;
 use Zodream\Image\Base\BoxInterface;
 
 abstract class AbstractImage implements ImageAdapter {
-    const ALLOW_TYPES = array(
+    const array ALLOW_TYPES = array(
         'jpeg' => array(
             'jpg',
             'jpeg',
@@ -26,7 +26,7 @@ abstract class AbstractImage implements ImageAdapter {
         'gd2' => 'gd2'
     );
 
-    protected string|null $file;
+    protected string|null $file = null;
 
     protected int $width;
 

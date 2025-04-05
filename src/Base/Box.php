@@ -16,7 +16,7 @@ final class Box implements BoxInterface
      */
     private int $height;
 
-    public function __construct($width, $height) {
+    public function __construct(float|int $width, float|int $height) {
         if (!\is_int($width)) {
             $width = (int) round($width);
         }

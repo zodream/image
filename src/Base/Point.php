@@ -3,11 +3,11 @@ declare(strict_types=1);
 namespace Zodream\Image\Base;
 
 
-final class Point implements PointInterface {
+final readonly class Point implements PointInterface {
 
     public function __construct(
-        private readonly int $x,
-        private readonly int $y) {
+        private int $x,
+        private int $y) {
     }
 
     public function getX(): int {

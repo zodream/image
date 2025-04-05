@@ -53,6 +53,11 @@ class ImageHelper {
         return sqrt(pow($fromX - $toX, 2) + pow($fromY - $toY, 2));
     }
 
+    /**
+     * 获取坐标 x 值
+     * @param mixed $point
+     * @return float
+     */
     public static function x(mixed $point): float {
         if ($point instanceof PointInterface) {
             return $point->getX();
@@ -66,6 +71,11 @@ class ImageHelper {
         return isset($point[0]) ? floatval($point[0]) : 0;
     }
 
+    /**
+     * 获取坐标 y 值
+     * @param mixed $point
+     * @return float
+     */
     public static function y(mixed $point): float {
         if ($point instanceof PointInterface) {
             return $point->getY();
@@ -96,6 +106,7 @@ class ImageHelper {
     }
 
     /**
+     * 生成成随机数
      * @param int $min
      * @param int $max
      * @param int $count

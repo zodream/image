@@ -41,7 +41,7 @@ class Captcha extends Image implements ICaptcha {
         'mode' => 0           // 验证码模式： 0 文字 1 公式
     ];
 
-    public function getRealType() {
+    public function getRealType(): string {
         return 'png';
     }
 
@@ -58,7 +58,7 @@ class Captcha extends Image implements ICaptcha {
      * @return string
      * @throws \Exception
      */
-    public function getCode() {
+    public function getCode(): string {
         if (empty($this->code)) {
             $this->createCode();
         }

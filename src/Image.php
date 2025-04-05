@@ -22,7 +22,7 @@ class Image {
         return $this->resource = ImageManager::create();
     }
 
-    public function getRealType() {
+    public function getRealType(): string {
         return $this->resource->getRealType();
     }
 	
@@ -56,7 +56,7 @@ class Image {
      * 保存，如果路径不存在则输出
 	 * @return bool
 	 */
-	public function save() {
+	public function save(): bool {
 		return $this->instance()->save();
 	}
 
@@ -66,8 +66,8 @@ class Image {
 	 * @param string $type
 	 * @return bool
 	 */
-    public function saveAs(string|null $output = null, string $type = '') {
-        $this->instance()->saveAs($output, $type);
+    public function saveAs(string|null $output = null, string $type = ''): bool {
+        return $this->instance()->saveAs($output, $type);
     }
 
     public function show() {
@@ -81,7 +81,7 @@ class Image {
      * 转化成base64编码
      * @return string
      */
-    public function toBase64() {
+    public function toBase64(): string {
         return $this->instance()->toBase64();
     }
 }

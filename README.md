@@ -22,6 +22,19 @@
 [内容生成图片](#draw)
 
 
+### 使用 iconfont 等类似字体图标
+
+```php
+$image = new Image();
+$res = $image->instance();
+$res->create(ImageManager::createSize(200, 200));
+$res->fill('#fff');
+$res->text("\u{e709}", ImageManager::createFont(app_path('data/fonts/iconfont.ttf')), ImageManager::createPoint(100, 100));
+$image->show();
+```
+
+** 请注意：`\u{e709}` 表示一个字符，且字符串必须用双引号 **
+
 ### ico 生成
 
 ```php
@@ -174,7 +187,7 @@ $captcha->setConfigs([
     'width' => 300,
     'height' => 130,
     'fontSize' => 20,
-    'fontFamily' => 'Yahei.ttf', // 暂不支持字体图标 iconfont
+    'fontFamily' => 'Yahei.ttf',
     'words' => $items,
     'count' => 3,
 ]);
@@ -269,5 +282,4 @@ $box = BoxNode::create([
     ])
 );
 $box->beginDraw()->show();
-
 ```
