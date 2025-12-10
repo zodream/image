@@ -13,9 +13,9 @@
         }
     ],
     "require": {
-        "php": ">=8.2",
-        "khanamiryan/qrcode-detector-decoder": "^2.0.2",
-        "bacon/bacon-qr-code": "^2.0.8"
+        "php": ">=8.5",
+        "khanamiryan/qrcode-detector-decoder": "^2.0.3",
+        "bacon/bacon-qr-code": "^3.0.3"
     },
     "suggest": {
         "ext-gd": "*",
